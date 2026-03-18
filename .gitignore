@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# temp/diagnostic files
+/tmp/
+/tmp_data.json
+/*.bat
+/test_connection.js
+/*.sql
+!/supabase/*.sql

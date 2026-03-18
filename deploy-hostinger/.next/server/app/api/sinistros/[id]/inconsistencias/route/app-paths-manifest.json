@@ -1,0 +1,3 @@
+{
+  "/api/sinistros/[id]/inconsistencias/route": "app/api/sinistros/[id]/inconsistencias/route.js"
+}

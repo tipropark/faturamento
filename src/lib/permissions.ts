@@ -1,0 +1,64 @@
+import { Perfil } from '@/types';
+
+export function canAccessAdmin(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'administrativo', 'ti'].includes(perfil);
+}
+
+export function canViewAll(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria'].includes(perfil);
+}
+
+export function canManageUsers(perfil: Perfil): boolean {
+  return ['administrador', 'administrativo'].includes(perfil);
+}
+
+export function canAccessSinistros(perfil: Perfil): boolean {
+  return [
+    'administrador','diretoria','gerente_operacoes',
+    'supervisor','analista_sinistro','financeiro','auditoria'
+  ].includes(perfil);
+}
+
+export function canAnalyzeSinistro(perfil: Perfil): boolean {
+  return ['administrador','analista_sinistro','gerente_operacoes'].includes(perfil);
+}
+
+export function canApproveFinanceiro(perfil: Perfil): boolean {
+  return ['administrador','financeiro','diretoria'].includes(perfil);
+}
+
+export function isSupervisor(perfil: Perfil): boolean {
+  return perfil === 'supervisor';
+}
+
+export function isGerenteOperacoes(perfil: Perfil): boolean {
+  return perfil === 'gerente_operacoes';
+}
+
+export function isDiretoriaOrAdmin(perfil: Perfil): boolean {
+  return ['administrador','diretoria'].includes(perfil);
+}
+
+export function canAccessTarifarios(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'supervisor', 'ti'].includes(perfil);
+}
+
+export function canApproveTarifario(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria'].includes(perfil);
+}
+
+export function canExecuteTarifario(perfil: Perfil): boolean {
+  return ['administrador', 'ti'].includes(perfil);
+}
+
+export function canAccessMetas(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'financeiro', 'auditoria', 'gerente_operacoes'].includes(perfil);
+}
+
+export function canManageMetas(perfil: Perfil): boolean {
+  return ['administrador', 'financeiro'].includes(perfil);
+}
+
+export function canAuditMetas(perfil: Perfil): boolean {
+  return ['administrador', 'auditoria'].includes(perfil);
+}

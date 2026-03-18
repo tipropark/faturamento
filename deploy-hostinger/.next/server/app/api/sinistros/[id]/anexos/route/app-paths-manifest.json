@@ -1,0 +1,3 @@
+{
+  "/api/sinistros/[id]/anexos/route": "app/api/sinistros/[id]/anexos/route.js"
+}

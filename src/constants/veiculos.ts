@@ -1,0 +1,41 @@
+export const MARCAS_VEICULOS = [
+  "Toyota", "Volkswagen", "Fiat", "Chevrolet", "Ford", "Renault", "Nissan", "Hyundai", "Honda",
+  "Jeep", "Peugeot", "Citroën", "Mitsubishi", "Kia", "Mercedes-Benz", "BMW", "Audi", "Volvo",
+  "Land Rover", "Porsche", "BYD", "Chery / CAOA Chery", "Subaru", "Suzuki", "Lexus", "RAM",
+  "Dodge", "Mini", "Jaguar", "Maserati", "Ferrari", "Lamborghini"
+].sort();
+
+export const MODELOS_POR_MARCA: Record<string, string[]> = {
+  "Toyota": ["Corolla", "Hilux", "SW4", "Yaris", "Etios", "RAV4", "Camry"],
+  "Volkswagen": ["Gol", "Polo", "Golf", "Virtus", "Jetta", "T-Cross", "Nivus", "Taos", "Amarok", "Saveiro", "Voyage"],
+  "Fiat": ["Uno", "Palio", "Argo", "Cronos", "Mobi", "Toro", "Strada", "Fastback", "Pulse", "Fiorino"],
+  "Chevrolet": ["Onix", "Prisma", "Cruze", "S10", "Tracker", "Spin", "Equinox", "Trailblazer", "Montana"],
+  "Ford": ["Ka", "Fiesta", "Focus", "EcoSport", "Ranger", "Maverick", "Territory", "Mustang"],
+  "Renault": ["Kwid", "Sandero", "Logan", "Duster", "Oroch", "Captur", "Master"],
+  "Nissan": ["March", "Versa", "Sentra", "Kicks", "Frontier", "Leaf"],
+  "Hyundai": ["HB20", "HB20S", "Creta", "Tucson", "Santa Fe", "AzeraI30"],
+  "Honda": ["Civic", "City", "HR-V", "Fit", "CR-V", "Accord"],
+  "Jeep": ["Renegade", "Compass", "Commander", "Wrangler", "Gladiator"],
+  "Peugeot": ["208", "2008", "3008", "5008", "Expert", "Partner"],
+  "Citroën": ["C3", "C4 Cactus", "C4 Lounge", "C5 Aircross", "Jumpy"],
+  "Mitsubishi": ["L200", "Pajero", "ASX", "Eclipse Cross", "Outlander"],
+  "Kia": ["Sportage", "Sorento", "Cerato", "Rio", "Stonic", "Niro", "Carnival"],
+  "Mercedes-Benz": ["Classe A", "Classe C", "Classe E", "Classe S", "GLA", "GLB", "GLC", "GLE", "GLS"],
+  "BMW": ["Série 3", "Série 5", "X1", "X3", "X5", "X7", "M3", "M5"],
+  "Audi": ["A1", "A3", "A4", "A5", "Q3", "Q5", "Q7", "Q8", "e-tron"],
+  "Volvo": ["XC40", "XC60", "XC90", "C40", "S60"],
+  "Land Rover": ["Range Rover Evoque", "Range Rover Velar", "Discovery", "Defender"],
+  "Porsche": ["911", "Cayenne", "Macan", "Taycan", "Panamera"],
+  "BYD": ["Dolphin", "Seal", "Song Plus", "Yuan Plus", "Han", "Tan"],
+  "Chery / CAOA Chery": ["Tiggo 2", "Tiggo 5X", "Tiggo 7", "Tiggo 8", "Arrizo 6"],
+  "Subaru": ["Impreza", "XV", "Forester", "Outback"],
+  "Suzuki": ["Jimny", "Vitara", "S-Cross", "Swift"],
+  "Lexus": ["UX", "NX", "RX", "ES"],
+  "RAM": ["1500", "2500", "3500", "Classic", "Rampage"],
+  "Dodge": ["RAM", "Journey", "Challenger", "Charger"],
+  "Mini": ["Cooper", "Countryman", "Clubman"],
+  "Jaguar": ["F-Pace", "E-Pace", "I-Pace", "XF"],
+  "Maserati": ["Ghibli", "Levante", "Quattroporte"],
+  "Ferrari": ["488", "812", "F8", "Portofino", "Roma"],
+  "Lamborghini": ["Aventador", "Huracán", "Urus"]
+};
