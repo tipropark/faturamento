@@ -164,34 +164,69 @@ export default function MetasPage() {
 
   return (
     <div className="page-body-inner">
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: activeTab === 'mensal' ? '3rem' : '1.5rem' }}>
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-            <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Dashboard de Performance</span>
+      <header style={{ 
+        display: 'flex', 
+        justifyContent: 'space-between', 
+        alignItems: 'center', 
+        marginBottom: '2.5rem',
+        padding: '0'
+      }}>
+        <div style={{ flex: 1 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+            <span style={{ 
+              fontSize: '0.8rem', 
+              fontWeight: 800, 
+              color: 'var(--brand-primary)', 
+              textTransform: 'uppercase', 
+              letterSpacing: '0.15em',
+              background: 'var(--brand-primary-light)',
+              padding: '0.35rem 1rem',
+              borderRadius: '20px'
+            }}>Performance</span>
           </div>
-          <h1 style={{ fontSize: '2.2rem', fontWeight: 800, letterSpacing: '-0.02em', color: 'var(--text-title)', lineHeight: '1.2' }}>Acompanhamento de Metas</h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem' }}>Visão estratégica de faturamento, ritmo operacional e projeções do período.</p>
+          <h1 style={{ 
+            fontSize: '3rem', 
+            fontWeight: 800, 
+            letterSpacing: '-0.04em', 
+            color: 'var(--gray-900)', 
+            lineHeight: '1.05',
+            marginBottom: '0.5rem'
+          }}>Acompanhamento de Metas</h1>
+          <p style={{ color: 'var(--gray-500)', fontSize: '1.05rem', fontWeight: 500 }}>
+            Visão estratégica de faturamento, ritmo operacional e projeções do período.
+          </p>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1.2rem' }}>
-           <div className="filter-group" style={{ padding: '0.5rem 1rem', background: 'var(--bg-card)', borderRadius: '14px', border: '1px solid var(--border-color)', display: 'flex', gap: '0.5rem', boxShadow: 'var(--shadow-sm)' }}>
-              <Calendar size={18} style={{ color: 'var(--brand-primary)' }} />
-              <select 
-                value={periodo.mes} 
-                onChange={(e) => setPeriodo(p => ({ ...p, mes: Number(e.target.value) }))}
-                className="select-filter"
-                style={{ fontWeight: 700, border: 'none', appearance: 'none', background: 'transparent', cursor: 'pointer' }}
-              >
-                {Array.from({ length: 12 }, (_, i) => (
-                  <option key={i+1} value={i+1}>{new Date(2024, i).toLocaleString('pt-BR', { month: 'long' })}</option>
-                ))}
-              </select>
-              <div style={{ width: '1px', height: '16px', background: 'var(--border-color)', alignSelf: 'center' }}></div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+           <div className="filter-group" style={{ 
+             padding: '0.75rem 1.5rem', 
+             background: 'var(--bg-card)', 
+             borderRadius: '20px', 
+             border: '1px solid var(--border-color)', 
+             display: 'flex', 
+             gap: '1rem', 
+             boxShadow: 'var(--shadow-sm)',
+             alignItems: 'center'
+           }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+                <Calendar size={20} style={{ color: 'var(--brand-primary)' }} />
+                <select 
+                  value={periodo.mes} 
+                  onChange={(e) => setPeriodo(p => ({ ...p, mes: Number(e.target.value) }))}
+                  className="select-filter"
+                  style={{ fontSize: '1rem', fontWeight: 700, border: 'none', appearance: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray-900)' }}
+                >
+                  {Array.from({ length: 12 }, (_, i) => (
+                    <option key={i+1} value={i+1}>{new Date(2024, i).toLocaleString('pt-BR', { month: 'long' })}</option>
+                  ))}
+                </select>
+              </div>
+              <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }}></div>
               <select 
                 value={periodo.ano} 
                 onChange={(e) => setPeriodo(p => ({ ...p, ano: Number(e.target.value) }))}
                 className="select-filter"
-                style={{ fontWeight: 700, border: 'none', appearance: 'none', background: 'transparent', cursor: 'pointer' }}
+                style={{ fontSize: '1rem', fontWeight: 700, border: 'none', appearance: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--gray-900)' }}
               >
                 {[2024, 2025, 2026].map(ano => <option key={ano} value={ano}>{ano}</option>)}
               </select>
@@ -200,87 +235,140 @@ export default function MetasPage() {
            <button 
              onClick={() => setShowModal(true)}
              className="btn btn-primary"
-             style={{ padding: '0.8rem 1.5rem', borderRadius: '12px', fontWeight: 700, boxShadow: '0 8px 16px var(--brand-primary-light)' }}
+             style={{ 
+               padding: '1rem 2rem', 
+               borderRadius: '18px', 
+               fontWeight: 700, 
+               fontSize: '1rem',
+               boxShadow: '0 12px 24px rgba(39, 47, 92, 0.18)',
+               border: 'none',
+               display: 'flex',
+               alignItems: 'center',
+               gap: '0.6rem'
+             }}
            >
-             <Plus size={18} style={{ marginRight: '0.5rem' }} /> Nova Meta
+             <Plus size={22} /> Nova Meta
            </button>
         </div>
       </header>
 
-      {/* Strategic Executive KPI Grid - Renderizado apenas na VISÃO MENSAL */}
+      {/* Strategic Executive KPI Grid */}
       {activeTab === 'mensal' && (
-        <section style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '1.5rem', marginBottom: '3rem' }}>
-          {/* KPI: Meta Total */}
-          <div className="card" style={{ padding: '1.75rem', border: 'none', background: 'linear-gradient(135deg, var(--bg-card), var(--bg-app))', borderRadius: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: '12px' }}><Target size={20} /></div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Objetivo do Mês</span>
+        <section style={{ 
+          display: 'grid', 
+          gridTemplateColumns: 'repeat(4, 1fr)', 
+          gap: '1.25rem', 
+          marginBottom: '3.5rem' 
+        }}>
+          {/* KPI: Meta Mensal */}
+          <div className="card" style={{ 
+            padding: '1.5rem', 
+            border: '1px solid var(--border-color)', 
+            background: 'var(--bg-card)', 
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '160px',
+            transition: 'all 0.3s ease',
+            margin: 0
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.5rem', background: 'var(--gray-100)', color: 'var(--gray-600)', borderRadius: '10px' }}><Target size={18} /></div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Meta Operacional</span>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--gray-900)' }}>{formatMoeda(stats.totalMeta)}</div>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--text-title)' }}>{formatMoeda(stats.totalMeta)}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Metas ativas para {metas.length} operações
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-400)' }}>
+               {metas.length} operações ativas
+            </div>
+          </div>
+
+          {/* KPI: Projeção IA */}
+          <div className="card" style={{ 
+            padding: '1.5rem', 
+            border: '1px solid var(--border-color)', 
+            background: 'var(--bg-card)', 
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '160px',
+            margin: 0
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.5rem', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: '10px' }}><TrendingUp size={18} /></div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projeção Final</span>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--brand-primary)' }}>{formatMoeda(stats.totalProjetado)}</div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: stats.totalProjetado >= stats.totalMeta ? 'var(--success)' : 'var(--danger)' }}></div>
+              <span style={{ fontSize: '0.75rem', fontWeight: 700, color: stats.totalProjetado >= stats.totalMeta ? 'var(--success)' : 'var(--danger)' }}>
+                  {stats.totalProjetado >= stats.totalMeta ? 'Tendência Positiva' : 'Abaixo da Meta'}
+              </span>
             </div>
           </div>
 
           {/* KPI: Realizado */}
-          <div className="card" style={{ padding: '1.75rem', border: 'none', borderRadius: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '12px' }}><Activity size={20} /></div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Realizado Acum.</span>
+          <div className="card" style={{ 
+            padding: '1.5rem', 
+            border: '1px solid var(--border-color)', 
+            background: 'var(--bg-card)', 
+            borderRadius: '20px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '160px',
+            margin: 0
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  <div style={{ padding: '0.5rem', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '10px' }}><Activity size={18} /></div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Realizado Até Hoje</span>
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)' }}>{formatMoeda(stats.totalRealizado)}</div>
             </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--success)' }}>{formatMoeda(stats.totalRealizado)}</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.5rem' }}>
-                <div className="progress-bar-bg" style={{ flex: 1, height: '6px' }}>
-                  <div className="progress-bar-fill" style={{ width: `${Math.min(atingimentoGlobal, 100)}%`, background: atingimentoGlobal >= 100 ? 'var(--success)' : atingimentoGlobal >= 85 ? 'var(--warning)' : 'var(--danger)' }} />
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 800, color: atingimentoGlobal >= 100 ? 'var(--success)' : 'var(--text-muted)' }}>{atingimentoGlobal.toFixed(0)}%</span>
-            </div>
-          </div>
-
-          {/* KPI: Projeção Erp */}
-          <div className="card" style={{ padding: '1.75rem', border: 'none', borderRadius: '24px', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ position: 'absolute', top: 0, right: 0, padding: '0.5rem 1rem', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', fontSize: '0.65rem', fontWeight: 800, borderRadius: '0 0 0 12px' }}>IA FORECAST</div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: '12px' }}><TrendingUp size={20} /></div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Projeção Final</span>
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: 'var(--brand-primary)' }}>{formatMoeda(stats.totalProjetado)}</div>
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', fontWeight: 600, color: stats.totalProjetado >= stats.totalMeta ? 'var(--success)' : 'var(--danger)' }}>
-                {stats.totalProjetado >= stats.totalMeta ? 'Tendência: Bater a Meta ✅' : 'Tendência: Não Bater ❌'}
-            </div>
-          </div>
-
-          {/* KPI: Desvio */}
-          <div className="card" style={{ padding: '1.75rem', border: 'none', borderRadius: '24px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: desvioGlobal >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)', color: desvioGlobal >= 0 ? 'var(--success)' : 'var(--danger)', borderRadius: '12px' }}>
-                  {desvioGlobal >= 0 ? <Plus size={20} /> : <Clock size={20} />}
-                </div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Gap vs Esperado</span>
-            </div>
-            <div style={{ fontSize: '1.8rem', fontWeight: 800, color: desvioGlobal >= 0 ? 'var(--success)' : 'var(--danger)' }}>
-                {(desvioGlobal >= 0 ? '+' : '') + formatMoeda(Math.abs(desvioGlobal))}
-            </div>
-            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Comparado ao ritmo ideal (D-{new Date().getDate()})
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+               <div className="progress-bar-bg" style={{ flex: 1, height: '6px', background: 'var(--gray-100)', borderRadius: '4px', overflow: 'hidden' }}>
+                  <div className="progress-bar-fill" style={{ 
+                    width: `${Math.min(atingimentoGlobal, 100)}%`, 
+                    height: '100%',
+                    background: atingimentoGlobal >= 100 ? 'var(--success)' : atingimentoGlobal >= 85 ? 'var(--warning)' : 'var(--danger)',
+                    borderRadius: '4px'
+                  }} />
+               </div>
+               <span style={{ fontSize: '0.75rem', fontWeight: 800, color: 'var(--gray-600)' }}>{atingimentoGlobal.toFixed(0)}%</span>
             </div>
           </div>
 
-          {/* KPI: Status Geral */}
-          <div className="card" style={{ padding: '1.75rem', border: 'none', background: 'var(--gray-800)', borderRadius: '24px', color: 'white' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
-                <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.1)', color: 'white', borderRadius: '12px' }}><ShieldAlert size={20} /></div>
-                <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'rgba(255,255,255,0.5)', textTransform: 'uppercase' }}>Saúde das Operações</span>
+          {/* KPI: Atingimento (Nobre) */}
+          <div className="card" style={{ 
+            padding: '1.5rem', 
+            border: 'none', 
+            background: 'var(--brand-primary)', 
+            borderRadius: '24px', 
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'space-between',
+            height: '160px',
+            color: 'white',
+            boxShadow: '0 20px 40px rgba(39, 47, 92, 0.2)',
+            margin: 0
+          }}>
+            <div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.75rem' }}>
+                  <div style={{ padding: '0.5rem', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '10px' }}><ShieldCheck size={18} /></div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Atingimento Global</span>
+              </div>
+              <div style={{ fontSize: '2.5rem', fontWeight: 900, lineHeight: '1', color: 'white' }}>
+                {atingimentoGlobal.toFixed(1)}<span style={{ fontSize: '1.2rem', fontWeight: 700, marginLeft: '2px', opacity: 0.8 }}>%</span>
+              </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem' }}>Operações no Ritmo</span>
-                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '20px', background: 'var(--success)', fontSize: '0.75rem', fontWeight: 800 }}>{stats.onTrack}</span>
-                </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <span style={{ fontSize: '0.85rem' }}>Demandam Atenção</span>
-                  <span style={{ padding: '0.2rem 0.6rem', borderRadius: '20px', background: 'var(--danger)', fontSize: '0.75rem', fontWeight: 800 }}>{stats.missed}</span>
-                </div>
+            <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'rgba(255,255,255,0.5)' }}>
+               Snapshot em tempo real
             </div>
           </div>
         </section>
@@ -290,9 +378,10 @@ export default function MetasPage() {
       <div style={{ 
         display: 'inline-flex', 
         background: 'var(--gray-100)', 
-        padding: '0.4rem', 
+        padding: '0.35rem', 
         borderRadius: '16px', 
         marginBottom: '2.5rem',
+        border: '1px solid var(--border-color)',
         boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.02)'
       }}>
         {[
@@ -304,7 +393,7 @@ export default function MetasPage() {
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
             style={{
-              padding: '0.75rem 1.5rem',
+              padding: '0.7rem 1.25rem',
               borderRadius: '12px',
               border: 'none',
               background: activeTab === tab.id ? 'var(--bg-card)' : 'transparent',
@@ -314,13 +403,13 @@ export default function MetasPage() {
               fontWeight: 700,
               display: 'flex',
               alignItems: 'center',
-              gap: '0.75rem',
+              gap: '0.6rem',
               cursor: 'pointer',
-              transition: 'all 0.25s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
             }}
           >
             {tab.icon}
-            {tab.label}
+            <span style={{ opacity: activeTab === tab.id ? 1 : 0.8 }}>{tab.label}</span>
           </button>
         ))}
       </div>
@@ -329,16 +418,26 @@ export default function MetasPage() {
       <div className="tab-content">
         {activeTab === 'mensal' && (
           <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
-            <div style={{ padding: '1.5rem', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-card)' }}>
-              <h2 style={{ fontSize: '1.1rem', fontWeight: 800 }}>Performance por Operação</h2>
-              <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+            <div style={{ 
+              padding: '1.5rem 2rem', 
+              borderBottom: '1px solid var(--border-color)', 
+              display: 'flex', 
+              justifyContent: 'space-between', 
+              alignItems: 'center', 
+              background: 'var(--bg-card)' 
+            }}>
+              <div>
+                <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gray-900)' }}>Performance por Operação</h2>
+                <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', marginTop: '0.25rem' }}>Detalhamento individual de metas e faturamento acumulado.</p>
+              </div>
+              <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--success)' }}></div>
-                    <span style={{ color: 'var(--text-muted)' }}>No Ritmo: {stats.onTrack}</span>
+                    <span style={{ color: 'var(--gray-600)' }}>No Ritmo: {stats.onTrack}</span>
                  </div>
-                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem' }}>
+                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.8rem', fontWeight: 600 }}>
                     <div style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--danger)' }}></div>
-                    <span style={{ color: 'var(--text-muted)' }}>Críticas: {stats.missed}</span>
+                    <span style={{ color: 'var(--gray-600)' }}>Demandam Atenção: {stats.missed}</span>
                  </div>
               </div>
             </div>
@@ -354,7 +453,7 @@ export default function MetasPage() {
                     <th>Desvio</th>
                     <th>Atingimento</th>
                     <th>Status do Ritmo</th>
-                    <th style={{ width: '80px' }}></th>
+                    <th style={{ width: '180px', textAlign: 'right', paddingRight: '2.5rem' }}>Ações</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -394,10 +493,23 @@ export default function MetasPage() {
                               {STATUS_APURACAO_LABELS[apuBase.status_apuracao as StatusApuracaoMeta] || (realizado > 0 ? 'EM ANDAMENTO' : 'PENDENTE')}
                             </span>
                           </td>
-                          <td>
-                            <div className="flex-center gap-1">
-                              <button className="btn-icon" onClick={() => { setSelectedMetaId(meta.id); setActiveTab('diaria'); }}><ArrowRight size={16} /></button>
-                              <button className="btn-icon delete-btn" onClick={() => handleDeleteMeta(meta.id)}><Trash2 size={16} /></button>
+                          <td style={{ textAlign: 'right', paddingRight: '2rem' }}>
+                            <div className="flex" style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', alignItems: 'center' }}>
+                              <button 
+                                className="btn-detail-table" 
+                                onClick={() => { setSelectedMetaId(meta.id); setActiveTab('diaria'); }}
+                                title="Ver detalhamento diário"
+                              >
+                                <ArrowRight size={16} />
+                                <span>Detalhar</span>
+                              </button>
+                              <button 
+                                className="btn-delete-table" 
+                                onClick={() => handleDeleteMeta(meta.id)}
+                                title="Excluir meta"
+                              >
+                                <Trash2 size={16} />
+                              </button>
                             </div>
                           </td>
                         </tr>
@@ -435,112 +547,272 @@ export default function MetasPage() {
                 return (
                   <React.Fragment key={selectedMetaId}>
                     {/* Top Stats for Selected Meta */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-                       <div className="card" style={{ padding: '1.5rem', border: 'none', background: 'var(--bg-app-light)', borderLeft: '4px solid var(--brand-primary)' }}>
-                          <div className="text-xs text-muted font-bold mb-2">META MENSAL OPERAÇÃO</div>
-                          <div className="text-2xl font-extrabold">{formatMoeda(meta.valor_meta)}</div>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(4, 1fr)', 
+                      gap: '1.25rem', 
+                      marginBottom: '3rem' 
+                    }}>
+                       <div className="card" style={{ 
+                         padding: '1.5rem', 
+                         background: 'var(--bg-card)', 
+                         borderRadius: '20px',
+                         display: 'flex',
+                         flexDirection: 'column',
+                         justifyContent: 'space-between',
+                         height: '140px',
+                         margin: 0
+                       }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--gray-300)' }}></div>
+                             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Meta Operacional</span>
+                          </div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--gray-900)' }}>{formatMoeda(meta.valor_meta)}</div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--gray-400)' }}>Objetivo definido</div>
                        </div>
-                       <div className="card" style={{ padding: '1.5rem', border: 'none', background: 'var(--bg-app-light)', borderLeft: '4px solid var(--brand-primary)' }}>
-                          <div className="text-xs text-muted font-bold mb-2">PROJEÇÃO ATUAL</div>
-                          <div className="text-2xl font-extrabold text-primary">{formatMoeda(apu.valor_projetado || 0)}</div>
+
+                       <div className="card" style={{ 
+                         padding: '1.5rem', 
+                         background: 'var(--bg-card)', 
+                         borderRadius: '20px',
+                         display: 'flex',
+                         flexDirection: 'column',
+                         justifyContent: 'space-between',
+                         height: '140px',
+                         margin: 0
+                       }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--brand-primary)' }}></div>
+                             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Projeção Atual</span>
+                          </div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--brand-primary)' }}>{formatMoeda(apu.valor_projetado || 0)}</div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand-primary)', opacity: 0.7 }}>Tendência do período</div>
                        </div>
-                       <div className="card" style={{ padding: '1.5rem', border: 'none', background: 'var(--bg-app-light)', borderLeft: `4px solid ${apu.desvio_valor >= 0 ? 'var(--success)' : 'var(--danger)'}` }}>
-                          <div className="text-xs text-muted font-bold mb-2">REALIZADO ATÉ HOJE</div>
-                          <div className="text-2xl font-extrabold">{formatMoeda(apu.valor_realizado || 0)}</div>
+
+                       <div className="card" style={{ 
+                         padding: '1.5rem', 
+                         background: 'var(--bg-card)', 
+                         borderRadius: '20px',
+                         display: 'flex',
+                         flexDirection: 'column',
+                         justifyContent: 'space-between',
+                         height: '140px',
+                         margin: 0
+                       }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                             <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--success)' }}></div>
+                             <span style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-500)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Realizado Acum.</span>
+                          </div>
+                          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--success)' }}>{formatMoeda(apu.valor_realizado || 0)}</div>
+                          <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--success)', opacity: 0.7 }}>Apurado até hoje</div>
                        </div>
-                       <div className="card" style={{ padding: '1.5rem', border: 'none', background: 'var(--gray-800)', color: 'white' }}>
-                          <div className="text-xs font-bold mb-2" style={{ color: 'rgba(255,255,255,0.5)' }}>ATINGIMENTO</div>
-                          <div className="text-2xl font-extrabold" style={{ color: 'var(--success)' }}>{(apu.percentual_atingimento || 0).toFixed(1)}%</div>
+
+                       <div className="card" style={{ 
+                         padding: '1.5rem', 
+                         border: 'none', 
+                         background: 'var(--brand-primary)', 
+                         borderRadius: '24px', 
+                         display: 'flex',
+                         flexDirection: 'column',
+                         justifyContent: 'space-between',
+                         height: '140px',
+                         color: 'white',
+                         boxShadow: '0 15px 30px rgba(39, 47, 92, 0.2)',
+                         margin: 0
+                       }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '0.5rem' }}>
+                              <div style={{ padding: '0.4rem', background: 'rgba(255,255,255,0.15)', color: 'white', borderRadius: '8px' }}><ShieldCheck size={16} /></div>
+                              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'rgba(255,255,255,0.6)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Atingimento</span>
+                          </div>
+                          <div style={{ fontSize: '2.2rem', fontWeight: 900, color: 'white' }}>
+                            {(apu.percentual_atingimento || 0).toFixed(1)}<span style={{ fontSize: '1.1rem', fontWeight: 700, marginLeft: '2px', opacity: 0.8 }}>%</span>
+                          </div>
+                          <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                             <div style={{ 
+                               width: `${Math.min(apu.percentual_atingimento || 0, 100)}%`, 
+                               height: '100%', 
+                               background: '#10B981', 
+                               borderRadius: '2px' 
+                             }}></div>
+                          </div>
                        </div>
                     </div>
 
                     {/* Chart + Insights Panel */}
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '2rem', marginBottom: '2rem' }}>
-                      <div className="card" style={{ padding: '2rem', height: '450px', border: 'none' }}>
-                        <div className="flex-between mb-8">
-                           <h3 className="text-lg font-bold">Evolução Diária - {meta.operacao?.nome_operacao || 'Global'}</h3>
-                           <div className="flex gap-4 text-xs">
-                              <div className="flex-center gap-2">
-                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--brand-primary)' }}></div>
-                                 <span className="font-bold">Realizado</span>
+                    <div className="dashboard-grid-vertical" style={{ 
+                      display: 'flex', 
+                      flexDirection: 'column',
+                      gap: '2rem', 
+                      marginBottom: '3rem'
+                    }}>
+                      <div className="card" style={{ 
+                        padding: '1.5rem', 
+                        height: '480px', 
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '24px',
+                        background: 'var(--bg-card)',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.04)',
+                        margin: 0,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        width: '100%'
+                      }}>
+                        <div className="flex-between mb-8" style={{ alignItems: 'flex-start' }}>
+                           <div>
+                              <h3 style={{ fontSize: '1.5rem', fontWeight: 900, color: 'var(--gray-900)', letterSpacing: '-0.02em', lineHeight: '1.2' }}>Evolução Diária</h3>
+                              <p style={{ fontSize: '1rem', color: 'var(--gray-500)', fontWeight: 600, marginTop: '0.4rem' }}>{meta.operacao?.nome_operacao || 'Global'}</p>
+                           </div>
+                           <div className="flex gap-6" style={{ display: 'flex', gap: '1.8rem' }}>
+                              <div className="flex-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', background: 'var(--brand-primary)', boxShadow: '0 0 8px var(--brand-primary-light)' }}></div>
+                                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-700)' }}>Realizado</span>
                               </div>
-                              <div className="flex-center gap-2">
-                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1.5px dashed var(--gray-400)' }}></div>
-                                 <span className="font-bold text-muted">Meta Diária</span>
+                              <div className="flex-center gap-2" style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                                 <div style={{ width: '12px', height: '12px', borderRadius: '50%', border: '2.5px dashed var(--gray-400)' }}></div>
+                                 <span style={{ fontSize: '0.85rem', fontWeight: 800, color: 'var(--gray-500)' }}>Meta Diária</span>
                               </div>
                            </div>
                         </div>
                         
-                        <ResponsiveContainer width="100%" height="80%">
-                           <AreaChart
-                             data={diarias.map((d: any) => ({
-                               name: new Date(d.data_referencia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
-                               realizado: d.valor_realizado_dia || 0,
-                               meta: d.meta_planejada || (Number(meta.valor_meta) / (Number(meta.diarias?.length) || 30))
-                             }))}
-                           >
-                             <defs>
-                               <linearGradient id="colorRealizado" x1="0" y1="0" x2="0" y2="1">
-                                 <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.2}/>
-                                 <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0.02}/>
-                               </linearGradient>
-                             </defs>
-                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" strokeOpacity={0.5} />
-                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--gray-400)' }} />
-                             <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fontWeight: 600, fill: 'var(--gray-400)' }} tickFormatter={(val) => `R$ ${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`} />
-                             <Tooltip 
-                               contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: 'var(--shadow-xl)', background: 'var(--bg-card)', padding: '1rem' }} 
-                               formatter={(val: any, name: any) => [formatMoeda(Number(val)), name === 'realizado' ? 'Faturamento' : 'Meta']}
-                             />
-                             <Area type="monotone" dataKey="realizado" name="realizado" stroke="var(--brand-primary)" strokeWidth={4} fillOpacity={1} fill="url(#colorRealizado)" animationDuration={1500} />
-                             <Area type="stepAfter" dataKey="meta" name="meta" stroke="var(--gray-400)" strokeWidth={2} strokeDasharray="6 6" fill="transparent" />
-                           </AreaChart>
-                        </ResponsiveContainer>
+                        <div style={{ flex: 1, width: '100%', marginTop: '1rem' }}>
+                          <ResponsiveContainer width="100%" height="100%">
+                             <AreaChart
+                               data={diarias.map((d: any) => ({
+                                 name: new Date(d.data_referencia + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' }),
+                                 realizado: d.valor_realizado_dia || 0,
+                                 meta: d.meta_planejada || (Number(meta.valor_meta) / (Number(meta.diarias?.length) || 30))
+                               }))}
+                               margin={{ top: 10, right: 10, left: 0, bottom: 20 }}
+                             >
+                               <defs>
+                                 <linearGradient id="colorRealizado" x1="0" y1="0" x2="0" y2="1">
+                                   <stop offset="5%" stopColor="var(--brand-primary)" stopOpacity={0.25}/>
+                                   <stop offset="95%" stopColor="var(--brand-primary)" stopOpacity={0.01}/>
+                                 </linearGradient>
+                               </defs>
+                               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="var(--border-color)" strokeOpacity={0.3} />
+                               <XAxis 
+                                 dataKey="name" 
+                                 axisLine={false} 
+                                 tickLine={false} 
+                                 tick={{ fontSize: 12, fontWeight: 700, fill: 'var(--gray-500)' }}
+                                 dy={15}
+                                 minTickGap={15}
+                                 interval={0}
+                               />
+                               <YAxis 
+                                 axisLine={false} 
+                                 tickLine={false} 
+                                 tick={{ fontSize: 12, fontWeight: 700, fill: 'var(--gray-500)' }} 
+                                 tickFormatter={(val) => `R$ ${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
+                                 dx={-15}
+                               />
+                               <Tooltip 
+                                 contentStyle={{ 
+                                   borderRadius: '16px', 
+                                   border: 'none', 
+                                   boxShadow: 'var(--shadow-lg)', 
+                                   background: 'var(--bg-card)', 
+                                   padding: '1.25rem' 
+                                 }} 
+                                 itemStyle={{ fontWeight: 700, fontSize: '0.85rem' }}
+                                 labelStyle={{ fontWeight: 800, color: 'var(--gray-900)', marginBottom: '0.5rem' }}
+                                 formatter={(val: any, name: any) => [formatMoeda(Number(val)), name === 'realizado' ? 'Faturamento' : 'Meta']}
+                               />
+                               <Area 
+                                 type="monotone" 
+                                 dataKey="realizado" 
+                                 name="realizado" 
+                                 stroke="var(--brand-primary)" 
+                                 strokeWidth={5} 
+                                 fillOpacity={1} 
+                                 fill="url(#colorRealizado)" 
+                                 animationDuration={1500} 
+                                 activeDot={{ r: 8, strokeWidth: 0, fill: 'var(--brand-primary)' }}
+                               />
+                               <Area 
+                                 type="stepAfter" 
+                                 dataKey="meta" 
+                                 name="meta" 
+                                 stroke="var(--gray-400)" 
+                                 strokeWidth={2.5} 
+                                 strokeDasharray="10 10" 
+                                 fill="transparent" 
+                               />
+                             </AreaChart>
+                          </ResponsiveContainer>
+                        </div>
                       </div>
 
-                      {/* Side Insight Panel */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                         <div className="card" style={{ padding: '1.5rem', border: 'none', flex: 1 }}>
-                            <h4 className="text-sm font-bold text-muted mb-6 uppercase tracking-wider">Métricas de Ritmo</h4>
-                            
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                               <div className="flex-between">
-                                  <div className="flex-center gap-3">
-                                     <div style={{ padding: '0.6rem', background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', borderRadius: '10px' }}><Activity size={18} /></div>
-                                     <div>
-                                        <div className="text-xs text-muted font-bold">MÉDIA DIÁRIA</div>
-                                        <div className="text-base font-extrabold">{formatMoeda(mediaDiaria)}</div>
-                                     </div>
-                                  </div>
-                               </div>
-
-                               <div className="flex-between">
-                                  <div className="flex-center gap-3">
-                                     <div style={{ padding: '0.6rem', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '10px' }}><TrendingUp size={18} /></div>
-                                     <div>
-                                        <div className="text-xs text-muted font-bold">PICO DE FATURAMENTO</div>
-                                        <div className="text-base font-extrabold">{formatMoeda(melhorDiaObj.valor_realizado_dia)}</div>
-                                        <div className="text-xs" style={{ color: 'var(--gray-400)' }}>{melhorDiaObj.data_referencia ? new Date(melhorDiaObj.data_referencia + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</div>
-                                     </div>
-                                  </div>
-                               </div>
-
-                               <div className="flex-between">
-                                  <div className="flex-center gap-3">
-                                     <div style={{ padding: '0.6rem', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: '10px' }}><ShieldCheck size={18} /></div>
-                                     <div>
-                                        <div className="text-xs text-muted font-bold">FREQUÊNCIA DE BATIMENTO</div>
-                                        <div className="text-base font-extrabold">{percAcimaMeta.toFixed(1)}%</div>
-                                        <div className="text-xs" style={{ color: 'var(--gray-400)' }}>{diasAcimaMeta} de {diarias.length} dias acima da meta</div>
-                                     </div>
-                                  </div>
+                      {/* Wide Insight Panel below Chart */}
+                      <div className="card" style={{ 
+                        padding: '1.5rem', 
+                        border: '1px solid var(--border-color)', 
+                        borderRadius: '24px',
+                        background: 'var(--bg-card)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        margin: 0
+                      }}>
+                         <h4 style={{ 
+                           fontSize: '0.75rem', 
+                           fontWeight: 800, 
+                           color: 'var(--gray-500)', 
+                           marginBottom: '2rem', 
+                           textTransform: 'uppercase', 
+                           letterSpacing: '0.1em' 
+                         }}>Métricas de Ritmo</h4>
+                         
+                         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', alignItems: 'center' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                               <div style={{ padding: '0.75rem', background: 'var(--bg-app)', color: 'var(--brand-primary)', borderRadius: '14px' }}><Activity size={20} /></div>
+                               <div>
+                                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Média Diária</div>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gray-900)' }}>{formatMoeda(mediaDiaria)}</div>
                                </div>
                             </div>
 
-                            <div style={{ marginTop: '2rem', padding: '1rem', background: 'var(--bg-app-light)', borderRadius: '12px' }}>
-                               <div className="text-xs font-bold text-muted mb-2">STATUS OPERACIONAL</div>
-                               <div className={`text-sm font-bold ${apu.status_apuracao === 'no_ritmo' ? 'text-success' : 'text-danger'}`}>
-                                  {apu.status_apuracao === 'no_ritmo' ? 'Operação está gerando o resultado esperado conforme o fluxo do mês.' : 'Operação abaixo do ritmo. Necessária intervenção gerencial imediata.'}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                               <div style={{ padding: '0.75rem', background: 'var(--success-bg)', color: 'var(--success)', borderRadius: '14px' }}><TrendingUp size={20} /></div>
+                               <div>
+                                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Melhor Resultado</div>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gray-900)' }}>{formatMoeda(melhorDiaObj.valor_realizado_dia)}</div>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-400)' }}>{melhorDiaObj.data_referencia ? new Date(melhorDiaObj.data_referencia + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</div>
+                               </div>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                               <div style={{ padding: '0.75rem', background: 'var(--warning-bg)', color: 'var(--warning)', borderRadius: '14px' }}><ShieldCheck size={20} /></div>
+                               <div>
+                                  <div style={{ fontSize: '0.7rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '0.2rem' }}>Batimento</div>
+                                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gray-900)' }}>{percAcimaMeta.toFixed(1)}%</div>
+                                  <div style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-400)' }}>{diasAcimaMeta} de {diarias.length} dias no alvo</div>
+                               </div>
+                            </div>
+
+                            <div style={{ 
+                              padding: '1.25rem 1.75rem', 
+                              background: apu.status_apuracao === 'no_ritmo' ? 'var(--success-bg)' : 'var(--danger-bg)', 
+                              borderRadius: '20px',
+                              border: `1px solid ${apu.status_apuracao === 'no_ritmo' ? 'rgba(16, 185, 129, 0.2)' : 'rgba(239, 68, 68, 0.2)'}`
+                            }}>
+                               <div style={{ 
+                                 fontSize: '0.65rem', 
+                                 fontWeight: 900, 
+                                 color: apu.status_apuracao === 'no_ritmo' ? 'var(--success-dark)' : 'var(--danger-dark)', 
+                                 textTransform: 'uppercase', 
+                                 letterSpacing: '0.05em',
+                                 marginBottom: '0.6rem'
+                               }}>Status Operacional</div>
+                               <div style={{ 
+                                 fontSize: '0.9rem', 
+                                 fontWeight: 700, 
+                                 lineHeight: '1.4',
+                                 color: apu.status_apuracao === 'no_ritmo' ? 'var(--success-dark)' : 'var(--danger-dark)'
+                               }}>
+                                  {apu.status_apuracao === 'no_ritmo' 
+                                    ? 'A operação mantém ritmo consistente para os alvos.' 
+                                    : 'Abaixo do esperado. Necessário revisão de estratégias.'}
                                </div>
                             </div>
                          </div>

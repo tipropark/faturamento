@@ -1,4 +1,6 @@
 import { redirect } from 'next/navigation';
+import { RecentSinistrosRow } from './RecentSinistrosRow';
+
 import { auth } from '@/lib/auth';
 import { createAdminClient } from '@/lib/supabase/server';
 import { Perfil, STATUS_SINISTRO_LABELS, PERFIL_LABELS } from '@/types';
@@ -103,154 +105,122 @@ export default async function DashboardPage() {
   const saudacao = hora < 12 ? 'Bom dia' : hora < 18 ? 'Boa tarde' : 'Boa noite';
 
   return (
-    <div style={{ paddingBottom: '2rem' }}>
-      {/* Header / Top Title Area */}
-      <div className="page-header" style={{ marginBottom: '2rem' }}>
-        <h1 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 700 }}>Dashboard</h1>
-        <div className="page-actions" style={{ gap: '1rem' }}>
-          {/* Ações primárias aqui, se houver */}
+    <>
+      <header className="page-header">
+        <div>
+          <h1 className="page-title">Dashboard</h1>
+          <p className="page-subtitle">Visão geral do desempenho e status das operações</p>
         </div>
-      </div>
+        <div className="page-actions">
+           <span className="text-muted text-sm font-medium">
+             {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
+           </span>
+        </div>
+      </header>
 
-      {/* Blue Banner */}
-      <div style={{
-        background: 'linear-gradient(90deg, #1D4ED8 0%, #3B82F6 100%)',
-        borderRadius: '16px',
-        padding: '3rem 2.5rem',
-        marginBottom: '2rem',
+      {/* Premium Welcome Banner */}
+      <section style={{
+        background: 'linear-gradient(135deg, var(--brand-primary) 0%, var(--brand-accent) 100%)',
+        borderRadius: 'var(--radius-md)',
+        padding: '3rem',
+        marginBottom: '2.5rem',
         color: 'white',
         position: 'relative',
         overflow: 'hidden',
-        boxShadow: '0 10px 25px -5px rgba(59, 130, 246, 0.3)',
+        boxShadow: 'var(--shadow-lg)',
       }}>
-        {/* Wave pattern / subtle overlay */}
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px' }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '0.75rem', letterSpacing: '-0.03em' }}>
+            {saudacao}, {user.nome.split(' ')[0]}! 👋
+          </h2>
+          <p style={{ color: 'rgba(255,255,255,0.85)', fontSize: '1.125rem', fontWeight: 500, lineHeight: 1.6 }}>
+            Bem-vindo ao Leve ERP. Você tem <strong>{statusCount('aberto')} sinistros abertos</strong> aguardando sua análise hoje.
+          </p>
+        </div>
+        {/* Subtle Decorative Element */}
         <div style={{
-          position: 'absolute', bottom: 0, left: 0, right: 0, height: '40%',
-          background: 'url("data:image/svg+xml,%3Csvg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 1440 320\'%3E%3Cpath fill=\'%23ffffff\' fill-opacity=\'0.1\' d=\'M0,192L48,197.3C96,203,192,213,288,192C384,171,480,117,576,117.3C672,117,768,171,864,202.7C960,235,1056,245,1152,229.3C1248,213,1344,171,1392,149.3L1440,128L1440,320L1392,320C1344,320,1248,320,1152,320C1056,320,960,320,864,320C768,320,672,320,576,320C480,320,384,320,288,320C192,320,96,320,48,320L0,320Z\'%3E%3C/path%3E%3C/svg%3E") no-repeat bottom',
-          backgroundSize: 'cover'
+          position: 'absolute', right: '-50px', top: '-50px', width: '250px', height: '250px',
+          background: 'rgba(255,255,255,0.05)', borderRadius: '50%', pointerEvents: 'none'
         }} />
-        
-        <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '0.5rem', position: 'relative', zIndex: 1 }}>
-          {saudacao}, {user.nome.split(' ')[0]}! 👋
-        </h2>
-        <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '1rem', fontWeight: 500, position: 'relative', zIndex: 1 }}>
-          {new Date().toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' })}
-        </p>
-      </div>
+      </section>
 
-      {/* KPI Stats Row (Colored Borders) */}
-      <div className="stats-grid" style={{ marginBottom: '2rem', gridTemplateColumns: 'repeat(5, 1fr)', gap: '1rem' }}>
+      {/* Key Stats Grid */}
+      <div className="stats-grid" style={{ marginBottom: '2.5rem' }}>
         {[
-          { label: 'Total de Sinistros', value: totalSinistros, icon: AlertTriangle, color: '#3B82F6' },
-          { label: 'Sinistros Abertos', value: statusCount('aberto'), icon: Clock, color: '#F59E0B' },
-          { label: 'Em Análise', value: statusCount('em_analise'), icon: FileText, color: '#8B5CF6' },
-          { label: 'Operações Ativas', value: totalOperacoes, icon: Building2, color: '#10B981' },
-          { label: 'Usuários Ativos', value: totalUsuarios, icon: Users, color: '#06B6D4' },
+          { label: 'Total de Sinistros', value: totalSinistros, icon: AlertTriangle, color: 'var(--brand-accent)' },
+          { label: 'Sinistros Abertos', value: statusCount('aberto'), icon: Clock, color: 'var(--warning)' },
+          { label: 'Em Análise', value: statusCount('em_analise'), icon: FileText, color: 'var(--info)' },
+          { label: 'Operações Ativas', value: totalOperacoes, icon: Building2, color: 'var(--success)' },
+          { label: 'Usuários Ativos', value: totalUsuarios, icon: Users, color: 'var(--brand-primary)' },
         ].map((stat, i) => (
-          <div key={i} className="card" style={{ 
-            padding: '1.5rem', 
-            borderTop: `4px solid ${stat.color}`,
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'space-between',
-            height: '120px'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span style={{ fontSize: '1.75rem', fontWeight: 700, color: 'var(--gray-900)' }}>{stat.value}</span>
-              <div style={{ color: stat.color, background: `${stat.color}15`, padding: '0.5rem', borderRadius: '10px' }}>
-                <stat.icon size={20} />
-              </div>
+          <div key={i} className="stat-card">
+            <div className="flex flex-between mb-4">
+               <div style={{ color: stat.color, background: `${stat.color}10`, padding: '0.625rem', borderRadius: '12px' }}>
+                 <stat.icon size={22} />
+               </div>
+               <span className="stat-value">{stat.value}</span>
             </div>
-            <div style={{ fontSize: '0.8125rem', color: 'var(--gray-500)', fontWeight: 600 }}>{stat.label}</div>
+            <div className="stat-label">{stat.label}</div>
           </div>
         ))}
       </div>
 
-      {/* Main Content Area */}
-      <div className="card" style={{ border: 'none', boxShadow: 'var(--shadow-md)', borderRadius: '16px' }}>
-        <div className="card-header" style={{ padding: '1.5rem 2rem' }}>
-          <div className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700 }}>Sinistros Recentes</div>
-          <a href="/sinistros" className="btn btn-secondary btn-sm" style={{ borderRadius: '8px', padding: '0.5rem 1rem' }}>
-            Ver todos
-          </a>
-        </div>
-        <div className="table-container" style={{ padding: '0 1rem 1rem' }}>
-          <table className="table">
-            <thead>
-              <tr style={{ background: 'var(--gray-50)' }}>
-                <th style={{ borderRadius: '8px 0 0 8px' }}>PR</th>
-                <th>Cliente</th>
-                <th>Operação</th>
-                <th>Status</th>
-                <th style={{ borderRadius: '0 8px 8px 0' }}>Data</th>
-              </tr>
-            </thead>
-            <tbody>
-              {!recentSinistros || recentSinistros.length === 0 ? (
+      {/* Main Content: Recent Activity */}
+      <div className="flex flex-col gap-6">
+        <section>
+          <div className="flex flex-between mb-4">
+             <h3 className="text-lg font-bold">Sinistros Recentes</h3>
+             <a href="/sinistros" className="btn btn-ghost btn-sm">Ver tudo <TrendingUp size={14} className="ml-1" /></a>
+          </div>
+          
+          <div className="table-responsive">
+            <table className="table">
+              <thead>
                 <tr>
-                  <td colSpan={5} style={{ textAlign: 'center', padding: '3rem' }}>
-                    <div style={{ color: 'var(--gray-400)' }}>Nenhum registro encontrado</div>
-                  </td>
+                  <th style={{ width: '100px' }}>PR</th>
+                  <th>Cliente</th>
+                  <th>Operação</th>
+                  <th>Status</th>
+                  <th style={{ textAlign: 'right' }}>Abertura</th>
                 </tr>
-              ) : (
-                recentSinistros.map((s: any) => (
-                  <tr key={s.id}>
-                    <td>
-                      <a href={`/sinistros/${s.id}`} style={{ color: 'var(--brand-primary)', fontWeight: 700 }}>
-                        {s.pr}
-                      </a>
-                    </td>
-                    <td style={{ fontWeight: 500 }}>{s.cliente_nome}</td>
-                    <td style={{ color: 'var(--gray-500)' }}>
-                      {(s.operacao as any)?.nome_operacao || '-'}
-                    </td>
-                    <td>
-                      <span className={`badge badge-status-${s.status}`} style={{
-                        padding: '0.4rem 0.8rem',
-                        borderRadius: '6px',
-                        fontSize: '0.65rem',
-                        fontWeight: 700,
-                        textTransform: 'uppercase'
-                      }}>
-                        {STATUS_SINISTRO_LABELS[s.status as keyof typeof STATUS_SINISTRO_LABELS]}
-                      </span>
-                    </td>
-                    <td style={{ color: 'var(--gray-500)', fontSize: '0.8125rem' }}>
-                      {new Date(s.criado_em).toLocaleDateString('pt-BR')}
-                    </td>
+              </thead>
+              <tbody>
+                {!recentSinistros || recentSinistros.length === 0 ? (
+                  <tr>
+                    <td colSpan={5} className="text-center py-10 text-muted">Nenhum sinistro recente.</td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* Bottom Summary Panel */}
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(6, 1fr)', 
-        gap: '0.75rem', 
-        marginTop: '1.5rem',
-        background: 'white',
-        padding: '1.25rem',
-        borderRadius: '16px',
-        boxShadow: 'var(--shadow-sm)'
-      }}>
-        {[
-          { status: 'aberto', label: 'Abertos', color: '#3B82F6' },
-          { status: 'em_analise', label: 'Em Análise', color: '#8B5CF6' },
-          { status: 'aguardando_documentos', label: 'Aguard. Docs', color: '#F59E0B' },
-          { status: 'aprovado', label: 'Aprovados', color: '#10B981' },
-          { status: 'reprovado', label: 'Reprovados', color: '#EF4444' },
-          { status: 'encerrado', label: 'Encerrados', color: '#64748B' },
-        ].map(({ status, label, color }) => (
-          <div key={status} style={{ textAlign: 'center', borderRight: status !== 'encerrado' ? '1px solid var(--gray-100)' : 'none' }}>
-            <div style={{ fontSize: '1.25rem', fontWeight: 700, color }}>{statusCount(status)}</div>
-            <div style={{ fontSize: '0.65rem', color: 'var(--gray-400)', textTransform: 'uppercase', fontWeight: 600, marginTop: '0.25rem' }}>{label}</div>
+                ) : (
+                  recentSinistros.map((s: any) => (
+                    <RecentSinistrosRow key={s.id} s={s} />
+                  ))
+                )}
+              </tbody>
+            </table>
           </div>
-        ))}
+        </section>
+
+        {/* Resumo por Status (Bottom Panel Refinado) */}
+        <section className="card p-4">
+          <div className="flex flex-between gap-4 flex-wrap">
+            {[
+              { status: 'aberto', label: 'Abertos', color: 'var(--brand-accent)' },
+              { status: 'em_analise', label: 'Em Análise', color: '#8B5CF6' },
+              { status: 'aguardando_documentos', label: 'Aguard. Docs', color: 'var(--warning)' },
+              { status: 'aprovado', label: 'Aprovados', color: 'var(--success)' },
+              { status: 'reprovado', label: 'Reprovados', color: 'var(--danger)' },
+              { status: 'encerrado', label: 'Encerrados', color: 'var(--gray-400)' },
+            ].map(({ status, label, color }, idx) => (
+              <div key={status} className="flex-1 text-center" style={{ 
+                borderRight: idx < 5 ? '1px solid var(--border-color)' : 'none',
+                minWidth: '120px'
+              }}>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, color }}>{statusCount(status)}</div>
+                <div className="text-xs font-bold text-muted uppercase tracking-wider">{label}</div>
+              </div>
+            ))}
+          </div>
+        </section>
       </div>
-    </div>
+    </>
   );
 }

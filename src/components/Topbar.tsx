@@ -32,22 +32,34 @@ export default function Topbar({ user, onMenuToggle, isMenuOpen }: TopbarProps) 
   const info = routeInfo?.[1] || { title: 'ERP Leve', breadcrumb: '' };
 
   return (
-    <header className="topbar" style={{ background: 'transparent', border: 'none', boxShadow: 'none' }}>
-      <div className="topbar-left">
+    <header className="topbar">
+      <div className="flex items-center gap-4">
         {onMenuToggle && (
           <button 
-            className="mobile-menu-btn" 
+            className="btn-secondary mobile-menu-btn mobile-only" 
             onClick={onMenuToggle}
             aria-label="Abrir menu"
-            style={{ background: 'white', border: '1px solid var(--gray-200)', marginRight: '1rem' }}
+            style={{ height: '44px', width: '44px', padding: 0, borderRadius: '12px', alignItems: 'center', justifyContent: 'center', border: 'none', cursor: 'pointer' }}
           >
             {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         )}
+        <div className="flex flex-col">
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--gray-900)', letterSpacing: '-0.02em', fontFamily: 'Outfit', lineHeight: 1.1 }}>
+            {info.title}
+          </h2>
+          {info.breadcrumb && (
+            <span className="text-muted text-xs font-bold uppercase tracking-wider mt-1">
+              {info.breadcrumb}
+            </span>
+          )}
+        </div>
       </div>
 
-      <div className="topbar-right">
-        {/* O perfil já está sendo exibido dentro das páginas em alguns casos, mas mantemos aqui para navegabilidade mobile/global se necessário, por ora deixamos vazio para o Dashboard brilhar */}
+      <div className="topbar-right flex items-center gap-3">
+        <button className="btn-ghost" style={{ padding: '0.625rem', borderRadius: '12px', color: 'var(--gray-400)' }}>
+          <Bell size={20} />
+        </button>
       </div>
     </header>
   );

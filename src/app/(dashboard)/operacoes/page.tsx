@@ -28,92 +28,126 @@ export default function OperacoesPage() {
   });
 
   return (
-    <div style={{ paddingBottom: '2rem' }}>
-      <div className="page-header" style={{ marginBottom: '2rem' }}>
+    <>
+      <header className="page-header">
         <div>
-          <h1 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 700 }}>Operações</h1>
-          <p className="page-subtitle" style={{ color: 'var(--gray-500)', fontSize: '0.875rem' }}>Gestão de unidades e pontos operacionais</p>
+          <h1 className="page-title">Operações</h1>
+          <p className="page-subtitle">Gestão de unidades e pontos operacionais ativos no sistema</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={carregar} style={{ borderRadius: '8px' }}>
-          <RefreshCw size={14} style={{ marginRight: '4px' }} /> Atualizar
+        <button className="btn btn-secondary" onClick={carregar}>
+          <RefreshCw size={18} className={loading ? 'rotate-animation' : ''} />
+          Sincronizar
         </button>
-      </div>
+      </header>
 
-      <div className="card" style={{ border: 'none', boxShadow: 'var(--shadow-md)', borderRadius: '16px' }}>
-        <div className="filters-bar" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--gray-100)' }}>
-          <div className="filter-search" style={{ maxWidth: '400px' }}>
-            <Search size={15} className="filter-search-icon" />
+      <section className="filters-card">
+        <div className="filters-grid">
+          <div className="search-wrapper">
+            <Search size={16} className="search-icon" />
             <input 
+              className="form-control search-input"
               placeholder="Buscar por nome, código ou cidade..." 
               value={filtros.busca} 
               onChange={e => setFiltros(p => ({ ...p, busca: e.target.value }))} 
-              style={{ borderRadius: '8px' }}
             />
           </div>
-          <select className="filter-control" value={filtros.status} onChange={e => setFiltros(p => ({ ...p, status: e.target.value }))} style={{ borderRadius: '8px', minWidth: '150px' }}>
-            <option value="">Status: Todos</option>
-            <option value="ativa">Ativas</option>
-            <option value="inativa">Inativas</option>
-          </select>
-          <select className="filter-control" value={filtros.bandeira} onChange={e => setFiltros(p => ({ ...p, bandeira: e.target.value }))} style={{ borderRadius: '8px', minWidth: '180px' }}>
-            <option value="">Bandeira: Todas</option>
-            {BANDEIRA_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
-        </div>
 
-        <div className="table-container" style={{ padding: '0 1rem 1rem' }}>
-          <table className="table">
-            <thead>
-              <tr style={{ background: 'var(--gray-50)' }}>
-                <th style={{ borderRadius: '8px 0 0 8px' }}>Operação</th>
-                <th>Código</th>
-                <th>Tipo</th>
-                <th>Bandeira</th>
-                <th>Cidade/UF</th>
-                <th>Vagas</th>
-                <th>CFTV</th>
-                <th>Supervisor</th>
-                <th style={{ borderRadius: '0 8px 8px 0' }}>Status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '4rem' }}>
-                    <div className="loading-spinner dark" style={{ margin: '0 auto' }} />
-                  </td>
-                </tr>
-              ) : filtradas.length === 0 ? (
-                <tr>
-                  <td colSpan={9} style={{ textAlign: 'center', padding: '4rem' }}>
-                    <Building2 size={40} style={{ margin: '0 auto 1rem', display: 'block', color: 'var(--gray-200)' }} />
-                    <div style={{ color: 'var(--gray-400)', fontWeight: 500 }}>Nenhuma operação encontrada</div>
-                  </td>
-                </tr>
-              ) : filtradas.map(o => (
-                <tr key={o.id}>
-                  <td><div style={{ fontWeight: 700, color: 'var(--gray-900)' }}>{o.nome_operacao}</div></td>
-                  <td><span style={{ fontFamily: 'monospace', fontSize: '0.8125rem', color: 'var(--gray-500)', fontWeight: 600 }}>{o.codigo_operacao}</span></td>
-                  <td style={{ color: 'var(--gray-500)', fontSize: '0.8125rem' }}>{TIPO_OPERACAO_LABELS[o.tipo_operacao as TipoOperacao]}</td>
-                  <td><span className="badge" style={{ backgroundColor: 'var(--brand-primary-light)', color: 'var(--brand-primary)', padding: '0.3rem 0.6rem' }}>{o.bandeira}</span></td>
-                  <td style={{ color: 'var(--gray-600)', fontSize: '0.8125rem' }}>{o.cidade}/{o.uf}</td>
-                  <td style={{ textAlign: 'center', fontWeight: 700, color: 'var(--gray-900)' }}>{o.quantidade_vagas}</td>
-                  <td style={{ textAlign: 'center' }}>
-                    {o.possui_cftv ? <Wifi size={15} color="var(--success)" /> : <WifiOff size={15} color="var(--gray-300)" />}
-                  </td>
-                  <td style={{ color: 'var(--gray-500)', fontSize: '0.8125rem' }}>{o.supervisor?.nome || '-'}</td>
-                  <td>
-                    {o.status === 'ativa'
-                      ? <span className="badge badge-success" style={{ padding: '0.35rem 0.8rem', borderRadius: '6px' }}>Ativa</span>
-                      : <span className="badge badge-gray" style={{ padding: '0.35rem 0.8rem', borderRadius: '6px' }}>Inativa</span>
-                    }
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="form-group mb-0">
+             <label className="form-label">Status</label>
+             <select className="form-control" value={filtros.status} onChange={e => setFiltros(p => ({ ...p, status: e.target.value }))}>
+               <option value="">Todos</option>
+               <option value="ativa">Ativas</option>
+               <option value="inativa">Inativas</option>
+             </select>
+          </div>
+
+          <div className="form-group mb-0">
+             <label className="form-label">Bandeira</label>
+             <select className="form-control" value={filtros.bandeira} onChange={e => setFiltros(p => ({ ...p, bandeira: e.target.value }))}>
+               <option value="">Todas as Bandeiras</option>
+               {BANDEIRA_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+             </select>
+          </div>
+
+          <div className="flex gap-2">
+             {filtros.busca || filtros.bandeira || filtros.status !== 'ativa' ? (
+                <button className="btn btn-ghost btn-sm" onClick={() => setFiltros({ busca: '', bandeira: '', status: 'ativa' })}>
+                  Limpar
+                </button>
+             ) : null}
+          </div>
         </div>
+      </section>
+
+      <div className="table-responsive">
+        <table className="table">
+          <thead>
+            <tr>
+              <th>Operação</th>
+              <th>Código</th>
+              <th>Tipo / Bandeira</th>
+              <th>Cidade/UF</th>
+              <th style={{ textAlign: 'center' }}>Vagas</th>
+              <th style={{ textAlign: 'center' }}>CFTV</th>
+              <th>Responsável</th>
+              <th style={{ textAlign: 'right' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '6rem' }}>
+                  <div className="loading-spinner" style={{ margin: '0 auto 1rem' }} />
+                  <p className="text-muted font-medium">Carregando operações...</p>
+                </td>
+              </tr>
+            ) : filtradas.length === 0 ? (
+              <tr>
+                <td colSpan={8} style={{ textAlign: 'center', padding: '6rem' }}>
+                  <Building2 size={48} className="text-muted mb-4 mx-auto display-block" style={{ opacity: 0.2 }} />
+                  <h3 className="text-lg font-bold text-gray-900">Nenhuma operação encontrada</h3>
+                  <p className="text-muted">Tente ajustar seus termos de busca ou filtros.</p>
+                </td>
+              </tr>
+            ) : filtradas.map(o => (
+              <tr key={o.id}>
+                <td>
+                  <div className="cell-main">{o.nome_operacao}</div>
+                  <div className="cell-sub">{o.cidade} - {o.uf}</div>
+                </td>
+                <td className="cell-code">{o.codigo_operacao}</td>
+                <td>
+                  <div className="cell-main">{TIPO_OPERACAO_LABELS[o.tipo_operacao as TipoOperacao]}</div>
+                  <div className="cell-sub">{o.bandeira}</div>
+                </td>
+                <td><span className="text-sm font-medium">{o.cidade}/{o.uf}</span></td>
+                <td style={{ textAlign: 'center' }} className="font-bold text-gray-900">{o.quantidade_vagas}</td>
+                <td style={{ textAlign: 'center' }}>
+                  {o.possui_cftv ? (
+                    <div className="flex items-center justify-center text-success" title="Possui CFTV Ativo">
+                       <Wifi size={18} />
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-center text-muted" style={{ opacity: 0.3 }} title="Sem CFTV">
+                       <WifiOff size={18} />
+                    </div>
+                  )}
+                </td>
+                <td>
+                   <div className="cell-main">{o.supervisor?.nome || '-'}</div>
+                   <div className="cell-sub">Supervisor Coresponsável</div>
+                </td>
+                <td style={{ textAlign: 'right' }}>
+                  {o.status === 'ativa'
+                    ? <span className="badge badge-success">Ativa</span>
+                    : <span className="badge badge-gray">Inativa</span>
+                  }
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </>
   );
 }

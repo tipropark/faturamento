@@ -1,15 +1,126 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
-  BarChart3, TrendingUp, Wallet, MapPin, 
+  BarChart3, PlusCircle,
+  MinusCircle,
+  TrendingUp, Wallet, MapPin, 
   Activity, Zap, ChevronLeft, Ticket, Tag, RefreshCcw,
-  CheckCircle2, AlertCircle, AlertTriangle, Clock, Wifi, WifiOff, DollarSign, PenLine
+  CheckCircle2, AlertCircle, AlertTriangle, Clock, Wifi, WifiOff, DollarSign, PenLine, 
+  ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2
 } from 'lucide-react';
+
+const ESTRUTURA_FATURAMENTO = [
+  {
+    grupo: "ROTATIVO",
+    itens: [
+      "Rotativo Dinheiro",
+      "Rotativo Cartão Débito",
+      "Rotativo Cartão Crédito",
+      "Rotativo Pix",
+      "ATM Pix",
+      "ATM Débito",
+      "ATM Crédito",
+      "ConectCar"
+    ]
+  },
+  {
+    grupo: "MENSALISTA",
+    itens: [
+      "Mensalista Dinheiro",
+      "Mensalista Cartão Débito",
+      "Mensalista Cartão Crédito",
+      "Mensalista Pix",
+      "ATM Mensalista Débito",
+      "ATM Mensalista Crédito",
+      "Mensalista Boleto"
+    ]
+  },
+  {
+    grupo: "OUTROS",
+    itens: [
+      "Eventuais",
+      "Liberação"
+    ]
+  }
+];
+
+// Global function for classifying movements
+function classificarMovimento(tipo?: string, forma?: string, descricao?: string): string {
+  const t = (tipo || '').toUpperCase();
+  const f = (forma || '').toUpperCase();
+  const d = (descricao || '').toUpperCase();
+
+  // MENSALISTA
+  if (t.includes('MENSALISTA') || d.includes('MENSALISTA')) {
+     if (t.includes('ATM') || d.includes('ATM')) {
+        if (f.includes('DEBITO')) return "ATM Mensalista Débito";
+        if (f.includes('CREDITO')) return "ATM Mensalista Crédito";
+     }
+     if (f.includes('BOLETO')) return "Mensalista Boleto";
+     if (f.includes('DEBITO')) return "Mensalista Cartão Débito";
+     if (f.includes('CREDITO')) return "Mensalista Cartão Crédito";
+     if (f.includes('PIX')) return "Mensalista Pix";
+     if (f.includes('DINHEIRO')) return "Mensalista Dinheiro";
+     return "Mensalista Dinheiro"; // Default for Mensalista
+  }
+
+  // ATM (Não mensalista)
+  if (t.includes('ATM') || d.includes('ATM')) {
+     if (f.includes('PIX')) return "ATM Pix";
+     if (f.includes('DEBITO')) return "ATM Débito";
+     if (f.includes('CREDITO')) return "ATM Crédito";
+     return "ATM Crédito"; // Default for ATM
+  }
+
+  // CONECTCAR
+  if (t.includes('CONECTCAR') || t.includes('SEM PARAR') || t.includes('VELOE') || t.includes('TAG') || d.includes('CONECT')) return "ConectCar";
+  
+  // OUTROS
+  if (t.includes('LIBERACAO') || d.includes('LIBERACAO')) return "Liberação";
+  if (t.includes('EVENTUAL') || t.includes('CANCELAMENTO') || d.includes('EVENTUAL') || d.includes('SOBRA') || d.includes('QUEBRA')) return "Eventuais";
+
+  // ROTATIVO / AVULSO
+  if (t.includes('ROTATIVO') || t.includes('AVULSO')) {
+     if (f.includes('PIX')) return "Rotativo Pix";
+     if (f.includes('DEBITO')) return "Rotativo Cartão Débito";
+     if (f.includes('CREDITO')) return "Rotativo Cartão Crédito";
+     if (f.includes('DINHEIRO')) return "Rotativo Dinheiro";
+     return "Rotativo Dinheiro"; // Default for Rotativo
+  }
+
+  // Fallback para Receitas Diversas
+  if (t.includes('RECEITA')) return "Eventuais";
+
+  // Final fallback
+  if (f.includes('PIX')) return "Rotativo Pix";
+  if (f.includes('DEBITO')) return "Rotativo Cartão Débito";
+  if (f.includes('CREDITO')) return "Rotativo Cartão Crédito";
+  if (f.includes('DINHEIRO')) return "Rotativo Dinheiro";
+
+  return "Eventuais";
+}
 
 // Função de formatação de moeda
 function formatarMoeda(valor: number) {
   return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(valor);
+}
+
+function getCategoriaStyles(catName: string) {
+  const name = catName.toUpperCase();
+  
+  if (name.includes('ATM')) return { icon: <Fingerprint size={16} />, color: '#3b82f6', bg: '#eff6ff' };
+  if (name.includes('CONECTCAR')) return { icon: <Zap size={16} />, color: '#f59e0b', bg: '#fffbeb' };
+  if (name.includes('LIBERACAO')) return { icon: <ZapOff size={16} />, color: '#64748b', bg: '#f1f5f9' };
+  if (name.includes('MENSALISTA')) return { icon: <User size={16} />, color: '#10b981', bg: '#ecfdf5' };
+  if (name.includes('ROTATIVO')) return { icon: <Clock size={16} />, color: '#f43f5e', bg: '#fff1f2' };
+  
+  if (name.includes('CREDITO') || name.includes('DEBITO') || name.includes('CARTAO')) return { icon: <CreditCard size={16} />, color: '#8b5cf6', bg: '#f5f3ff' };
+  if (name.includes('PIX')) return { icon: <Smartphone size={16} />, color: '#06b6d4', bg: '#ecfeff' };
+  if (name.includes('DINHEIRO')) return { icon: <Banknote size={16} />, color: '#4ade80', bg: '#f0fdf4' };
+  if (name.includes('BOLETO')) return { icon: <Ticket size={16} />, color: '#6366f1', bg: '#eef2ff' };
+  
+  return { icon: <Tag size={16} />, color: '#94a3b8', bg: '#f8fafc' };
 }
 
 // Componente Mini Chart
@@ -119,6 +230,9 @@ export default function FaturamentoPage() {
   const [selectedOp, setSelectedOp] = useState<any>(null);
   const [dailySummaries, setDailySummaries] = useState<any[]>([]);
   const [activeDate, setActiveDate] = useState<string | null>(null);
+  const [filterCategory, setFilterCategory] = useState<string | null>(null);
+  const [movimentosDetalhados, setMovimentosDetalhados] = useState<any[]>([]);
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false);
 
   // Estados de Ajuste
   const [showAjusteModal, setShowAjusteModal] = useState(false);
@@ -159,7 +273,7 @@ export default function FaturamentoPage() {
   
   // Função central para calcular KPIs de um conjunto de resumos
   const calculateStats = useCallback((resumos: any[]) => {
-    return resumos.reduce((acc, c) => {
+    return resumos.reduce((acc: { revenue: number; expense: number; net: number; count: number; adjustments: number; }, c: any) => {
       // Receita total consolidada (Receita + Avulso + Mensalista)
       const rev = (Number(c.total_receita_ajustada) || 0) + 
                   (Number(c.total_avulso_ajustado) || 0) + 
@@ -171,28 +285,41 @@ export default function FaturamentoPage() {
       const net = (Number(c.resultado_liquido_ajustado || c.resultado_liquido_ajustada) || 0);
       
       const count = (Number(c.quantidade_movimentos) || 0);
+
+      const adj = (Number(c.ajuste_receita_total) || 0) + 
+                  (Number(c.ajuste_avulso_total) || 0) + 
+                  (Number(c.ajuste_mensalista_total) || 0) - 
+                  (Number(c.ajuste_despesa_total) || 0);
       
       return {
         revenue: acc.revenue + rev,
         expense: acc.expense + exp,
         net: acc.net + net,
-        count: acc.count + count
+        count: acc.count + count,
+        adjustments: acc.adjustments + adj
       };
-    }, { revenue: 0, expense: 0, net: 0, count: 0 });
+    }, { revenue: 0, expense: 0, net: 0, count: 0, adjustments: 0 });
   }, []);
 
   // Função central para filtrar resumos por período (RESPEITA DATA LOCAL)
   const getFilteredSummaries = useCallback((resumos: any[], period: string) => {
     const now = new Date();
-    // String da data local: YYYY-MM-DD
-    const todayStr = now.toISOString().split('T')[0];
     
-    // Ontem
+    // Helper para gerar YYYY-MM-DD local
+    const getDS = (d: Date) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    };
+
+    const todayStr = getDS(now);
+    
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
-    const yestStr = yesterday.toISOString().split('T')[0];
+    const yestStr = getDS(yesterday);
 
-    return resumos.filter(r => {
+    return resumos.filter((r: any) => {
       const dateRef = r.data_referencia; // YYYY-MM-DD
       if (!dateRef) return false;
       
@@ -200,7 +327,7 @@ export default function FaturamentoPage() {
       if (period === 'yesterday') return dateRef === yestStr;
       
       const [year, month, day] = dateRef.split('-').map(Number);
-      const rDate = new Date(year, month - 1, day, 12, 0, 0); // Meio-dia local evita shifts de fuso
+      const rDate = new Date(year, month - 1, day, 12, 0, 0);
 
       if (period === 'month') {
         return year === now.getFullYear() && (month - 1) === now.getMonth();
@@ -217,39 +344,36 @@ export default function FaturamentoPage() {
   }, []);
 
   /**
-   * Função para injetar resumos virtuais (Live Data) caso o resumo consolidado do dia
-   * ainda não tenha sido processado pelo banco.
+   * Função para processar e unificar resumos (Base Local + Base Consolidada do Banco)
+   * Garante que Resumo Inicial e Visão Detalhada usem EXATAMENTE a mesma memória de cálculo.
    */
   const getEnrichedFilteredSummaries = useCallback((resumos: any[], period: string, opId?: string) => {
-    let filtered = getFilteredSummaries(resumos, period);
-    
     const now = new Date();
     const todayStr = now.toISOString().split('T')[0];
     
-    if (['today', 'month', '7d', '30d'].includes(period)) {
-       const opsToProcess = opId ? operations.filter(o => o.id === opId) : operations;
-       
-       opsToProcess.forEach(op => {
-         const hasToday = resumos.some(r => r.operacao_id === op.id && r.data_referencia === todayStr);
-         if (!hasToday) {
-           const movsToday = allMovimentos.filter(m => m.operacao_id === op.id && (m.data_saida || m.data_entrada || m.criado_em).startsWith(todayStr));
-           if (movsToday.length > 0) {
-             const rev = movsToday.filter(m => m.tipo_movimento !== 'Despesa').reduce((a, b) => a + Number(b.valor), 0);
-             const exp = movsToday.filter(m => m.tipo_movimento === 'Despesa').reduce((a, b) => a + Number(b.valor), 0);
-             filtered.push({
-               operacao_id: op.id,
-               data_referencia: todayStr,
-               total_receita_ajustada: rev,
-               total_despesa_ajustada: exp,
-               resultado_liquido_ajustado: rev - exp,
-               quantidade_movimentos: movsToday.length
-             });
-           }
-         }
-       });
-    }
-    return filtered;
-  }, [getFilteredSummaries, operations, allMovimentos]);
+    // 1. Filtrar operações que vamos processar
+    const opsToProcess = opId ? operations.filter((o: any) => o.id === opId) : operations;
+    
+    // 2. Criar um mapa de resumos consolidados por [operacao_id][data]
+    const resMap: Record<string, Record<string, any>> = {};
+    resumos.forEach(r => {
+      if (!resMap[r.operacao_id]) resMap[r.operacao_id] = {};
+      resMap[r.operacao_id][r.data_referencia] = r;
+    });
+
+    // 3. Gerar resumos unificados para os últimos 3 dias BASEADOS EM MOVIMENTOS REAIS (Live Data)
+    // Isso garante que se o usuário lançou hoje, aparece hoje, independente da data_saida.
+    const allUnified: any[] = [];
+    
+    opsToProcess.forEach(op => {
+      Object.keys(resMap[op.id] || {}).forEach(date => {
+         allUnified.push(resMap[op.id][date]);
+      });
+    });
+
+    // 4. Aplicar filtro de período final aos resumos unificados
+    return getFilteredSummaries(allUnified, period);
+  }, [operations, allResumos, getFilteredSummaries]);
 
   // --- DERIVAÇÕES DE ESTADO ---
 
@@ -260,74 +384,108 @@ export default function FaturamentoPage() {
   })();
 
   const abrirDetalheOperacao = (op: any) => {
-    const resOps = allResumos.filter(r => r.operacao_id === op.id);
-    const movOps = allMovimentos.filter(m => m.operacao_id === op.id);
-    const ajuOps = allAjustes.filter(a => a.operacao_id === op.id);
-    
-    // Identificar todas as datas únicas que existem em movimentos ou resumos (últimos 14 dias)
-    const allDates = Array.from(new Set([
-      ...resOps.map(r => r.data_referencia),
-      ...movOps.map(m => (m.data_saida || m.data_entrada || m.criado_em).split('T')[0])
-    ])).sort().reverse().slice(0, 14);
+    // Para o detalhe, recalcular os resumos da operação usando o novo pipeline unificado
+    const dailySummaries = getEnrichedFilteredSummaries(allResumos, '30d', op.id);
+    const sortedDates = [...new Set(dailySummaries.map(s => s.data_referencia))].sort().reverse();
 
-    const summaries = allDates.map(date => {
-      const summary = resOps.find(r => r.data_referencia === date);
-      const dayMovs = movOps.filter(m => (m.data_saida || m.data_entrada || m.criado_em).startsWith(date));
-      const dayAjustes = ajuOps.filter(a => a.data_referencia === date);
+    setDailySummaries(dailySummaries.map(s => ({
+      date: s.data_referencia,
+      total: s.total_receita_ajustada,
+      expense: s.total_despesa_ajustada,
+      net_total: s.resultado_liquido_ajustado,
+      count: s.quantidade_movimentos,
+      is_virtual: s.is_live
+    })));
 
-      if (summary) {
-        const dayStats = calculateStats([summary]);
-        return {
-          date: summary.data_referencia,
-          total: dayStats.revenue,
-          net_total: dayStats.net,
-          count: dayStats.count,
-          is_ajustado: (Number(summary.ajuste_liquido_total) !== 0) || dayAjustes.length > 0,
-          tickets: dayMovs,
-          ajustes: dayAjustes,
-          resumo_tipo: summary.resumo_por_tipo_json,
-          resumo_forma: summary.resumo_por_forma_pagamento_json
-        };
-      } else {
-        // Gerar resumo virtual a partir dos movimentos (especialmente para 'Hoje')
-        const rev = dayMovs.filter(m => m.tipo_movimento !== 'Despesa').reduce((a, b) => a + Number(b.valor), 0);
-        const exp = dayMovs.filter(m => m.tipo_movimento === 'Despesa').reduce((a, b) => a + Number(b.valor), 0);
-        
-        const resumo_tipo: any = {};
-        const resumo_forma: any = {};
-        
-        dayMovs.forEach(m => {
-          const t = m.tipo_movimento || 'Outros';
-          resumo_tipo[t] = resumo_tipo[t] || { total: 0, count: 0 };
-          resumo_tipo[t].total += Number(m.valor);
-          resumo_tipo[t].count += 1;
-          
-          const f = m.forma_pagamento || 'DINHEIRO';
-          resumo_forma[f] = resumo_forma[f] || { total: 0, count: 0 };
-          resumo_forma[f].total += Number(m.valor);
-          resumo_forma[f].count += 1;
-        });
-
-        return {
-          date,
-          total: rev,
-          net_total: rev - exp,
-          count: dayMovs.length,
-          is_ajustado: dayAjustes.length > 0,
-          tickets: dayMovs,
-          ajustes: dayAjustes,
-          resumo_tipo,
-          resumo_forma,
-          is_virtual: true
-        };
-      }
-    });
-
-    setDailySummaries(summaries);
     setSelectedOp(op);
-    if (summaries.length > 0) setActiveDate(summaries[0].date);
+    if (sortedDates.length > 0) setActiveDate(sortedDates[0]);
     setView('detalhe');
   };
+
+  // Memoized tickets for the activeDate, using the UNIFIED date logic
+  // Escala para grandes volumes: Primeiro tenta usar dados detalhados (carregados sob demanda)
+  // Se não houver detalhados (ex: mudou de dia agora), usa o "Lite Summary" da memória global como fallback
+  const tickets = useMemo(() => {
+    if (!activeDate || !selectedOp) return [];
+    
+    // Se temos dados detalhados para ESTA unidade e ESTA data, usamos eles (SÃO COMPLETOS)
+    const matchesDetalhes = movimentosDetalhados.filter((m: any) => {
+       const saStr = m.data_saida || '';
+       const enStr = m.data_entrada || '';
+       const crStr = m.criado_em || '';
+       
+       let effectiveISO = saStr;
+       if (!effectiveISO) effectiveISO = enStr;
+       if (!effectiveISO) effectiveISO = crStr;
+       
+       const effectiveDate = effectiveISO.substring(0, 10);
+       return effectiveDate === activeDate;
+    });
+
+    if (matchesDetalhes.length > 0) return matchesDetalhes;
+
+    // Senão, fallback para o Lite Summary (Contém apenas colunas de cálculo, sem placa/id completo)
+    return allMovimentos.filter((m: any) => {
+      if (m.operacao_id !== selectedOp.id) return false;
+      const saStr = m.data_saida || '';
+      const enStr = m.data_entrada || '';
+      const crStr = m.criado_em || '';
+      
+      let effectiveISO = saStr;
+      if (!effectiveISO) effectiveISO = enStr;
+      if (!effectiveISO) effectiveISO = crStr;
+      
+      const effectiveDate = effectiveISO.substring(0, 10);
+      return effectiveDate === activeDate;
+    });
+  }, [allMovimentos, movimentosDetalhados, activeDate, selectedOp]);
+
+  // Efeito para carregar detalhes sob demanda ao selecionar op ou data
+  useEffect(() => {
+    if (view === 'detalhe' && selectedOp && activeDate) {
+      const fetchDetails = async () => {
+        setIsLoadingDetails(true);
+        try {
+          const res = await fetch(`/api/faturamento?mode=details&operacao_id=${selectedOp.id}&date=${activeDate}`);
+          if (res.ok) {
+            const data = await res.json();
+            setMovimentosDetalhados(data || []);
+          }
+        } catch (err) {
+          console.error("Erro ao carregar detalhes:", err);
+        } finally {
+          setIsLoadingDetails(false);
+        }
+      };
+      fetchDetails();
+    } else if (view === 'dashboard') {
+      setMovimentosDetalhados([]); // Limpa ao voltar para o dashboard
+    }
+  }, [view, selectedOp, activeDate]);
+
+  // Recalcular Stats Manuais a partir da tabela oficial de resumos para paridade total
+  const manualStats = useMemo(() => {
+    if (!activeDate || !selectedOp) return { revenue: 0, expense: 0, net: 0, count: 0, adjustments: [] };
+    
+    // Buscar a linha oficial no banco para esse dia/op
+    const official = allResumos.find((r: any) => 
+      r.operacao_id === selectedOp.id && r.data_referencia === activeDate
+    );
+
+    if (official) {
+      return {
+        revenue: (Number(official.total_receita_ajustada) || 0) + 
+                 (Number(official.total_avulso_ajustado) || 0) + 
+                 (Number(official.total_mensalista_ajustado) || 0),
+        expense: (Number(official.total_despesa_ajustada) || 0),
+        net: (Number(official.resultado_liquido_ajustado) || 0),
+        count: (Number(official.quantidade_movimentos) || 0),
+        adjustments: allAjustes.filter((a: any) => a.operacao_id === selectedOp.id && a.data_referencia === activeDate)
+      };
+    }
+
+    return { revenue: 0, expense: 0, net: 0, count: 0, adjustments: [] };
+  }, [allResumos, allAjustes, activeDate, selectedOp]);
 
   const handleSalvarAjuste = async () => {
     if (!ajusteValue || !ajusteMotivo) return alert("Preencha o valor e o motivo do ajuste.");
@@ -373,7 +531,7 @@ export default function FaturamentoPage() {
       if (res.ok) {
         await fetchDadosBase(true);
         // Atualiza a visualização local para remover o item sem ter que fechar o detalhe
-        setDailySummaries(prev => prev.map(s => ({
+        setDailySummaries(prev => prev.map((s: any) => ({
           ...s,
           ajustes: s.ajustes.filter((a: any) => a.id !== ajusteId)
         })));
@@ -391,38 +549,37 @@ export default function FaturamentoPage() {
   }
 
   return (
-    <div className="page-container" style={{ paddingBottom: '4rem' }}>
-      
-      <div className="page-header" style={{ marginBottom: '2rem' }}>
+    <>
+      <header className="page-header">
         <div>
           <h1 className="page-title">Módulo Faturamento</h1>
           <p className="page-subtitle">Base de Operações e Resultados Líquidos</p>
         </div>
-        <div className="page-actions" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <div className="page-actions">
           <div style={{ textAlign: 'right' }}>
             <span style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, display: 'block' }}>
                {isRefreshing ? 'Sincronizando...' : 'Atualizado'}
             </span>
-            <span style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text-main)' }}>
+            <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>
                {lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
-          <button className="action-btn" onClick={() => fetchDadosBase(true)} disabled={isRefreshing}>
-             <RefreshCcw className={isRefreshing ? 'rotate-animation' : ''} />
+          <button className="btn btn-secondary" onClick={() => fetchDadosBase(true)} disabled={isRefreshing} style={{ width: '42px', height: '42px', padding: 0 }}>
+             <RefreshCcw size={18} className={isRefreshing ? 'rotate-animation' : ''} />
           </button>
         </div>
-      </div>
+      </header>
 
       {view === 'dashboard' && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+        <div className="flex flex-col gap-6">
           
-          <div className="card" style={{ padding: '2rem' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem', flexWrap: 'wrap', gap: '1rem' }}>
+          <section className="card" style={{ padding: '1.25rem 1.75rem', marginBottom: '1.5rem', overflow: 'hidden' }}>
+            <header className="flex flex-between items-center mb-6" style={{ flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 className="card-title" style={{ fontSize: '1.5rem', marginBottom: '0.25rem' }}>Resumo Executivo</h3>
-                <p className="card-subtitle">Visão consolidada da operação</p>
+                <h3 className="text-xl font-bold" style={{ margin: 0, letterSpacing: '-0.02em' }}>Resumo Executivo</h3>
+                <p className="text-muted text-xs font-bold text-uppercase tracking-widest mt-1">Visão financeira consolidada</p>
               </div>
-              <div style={{ display: 'flex', gap: '0.3rem', background: 'var(--bg-app)', padding: '0.25rem', borderRadius: '12px', overflowX: 'auto' }}>
+              <div className="flex gap-1" style={{ background: 'var(--gray-50)', padding: '0.25rem', borderRadius: '12px', border: '1px solid var(--gray-200)' }}>
                 {[
                   { id: 'today', label: 'Hoje' }, 
                   { id: 'yesterday', label: 'Ontem' }, 
@@ -433,47 +590,91 @@ export default function FaturamentoPage() {
                   <button
                     key={p.id}
                     onClick={() => setDashboardPeriod(p.id as any)}
-                    style={{
-                      padding: '0.5rem 0.8rem', fontSize: '0.75rem', fontWeight: 700, borderRadius: '8px', border: 'none', cursor: 'pointer', whiteSpace: 'nowrap',
-                      background: dashboardPeriod === p.id ? 'var(--bg-card)' : 'transparent',
-                      color: dashboardPeriod === p.id ? 'var(--text-title)' : 'var(--gray-500)',
-                      boxShadow: dashboardPeriod === p.id ? 'var(--shadow-sm)' : 'none'
-                    }}
+                    className={`btn btn-sm ${dashboardPeriod === p.id ? 'btn-primary' : 'btn-ghost'}`}
+                    style={{ borderRadius: '10px', padding: '0.5rem 0.85rem' }}
                   >{p.label}</button>
                 ))}
               </div>
-            </div>
+            </header>
 
-            <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))' }}>
-              <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                <span className="stat-label">Faturamento Bruto</span>
-                <span className="stat-value">{formatarMoeda(dashboardStats.revenue)}</span>
-                <span className="badge badge-green" style={{ marginTop: '0.5rem' }}><TrendingUp size={12}/> Volume Período</span>
+            <div style={{ 
+              display: 'grid', 
+              gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+              gap: '1rem',
+              alignItems: 'stretch'
+            }}>
+              <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                <div className="flex flex-between items-center mb-2">
+                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Faturamento Bruto</span>
+                   <div style={{ color: 'var(--brand-primary)', background: 'var(--brand-primary-light)', padding: '6px', borderRadius: '8px' }}>
+                     <DollarSign size={16} />
+                   </div>
+                </div>
+                <div className="text-2xl font-black text-gray-900 leading-tight">
+                  {formatarMoeda(dashboardStats.revenue)}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                   <TrendingUp size={14} className="text-success" />
+                   <span className="text-xs font-bold text-success uppercase">Volume Realizado</span>
+                </div>
               </div>
-              <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                <span className="stat-label">Resultado Líquido</span>
-                <span className="stat-value" style={{ color: dashboardStats.net >= 0 ? 'var(--brand-primary-dark)' : 'var(--danger)' }}>{formatarMoeda(dashboardStats.net)}</span>
-                <span className="badge badge-purple" style={{ marginTop: '0.5rem' }}>Consolidado</span>
+
+              <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                <div className="flex flex-between items-center mb-2">
+                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Resultado Líquido</span>
+                   <div style={{ color: 'var(--success)', background: 'var(--success-bg)', padding: '6px', borderRadius: '8px' }}>
+                     <Zap size={16} />
+                   </div>
+                </div>
+                <div className="text-2xl font-black leading-tight" style={{ color: dashboardStats.net >= 0 ? 'var(--gray-900)' : 'var(--danger)' }}>
+                  {formatarMoeda(dashboardStats.net)}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dashboardStats.net >= 0 ? 'var(--success)' : 'var(--danger)' }} />
+                   <span className="text-xs font-bold uppercase" style={{ color: dashboardStats.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>Consolidado</span>
+                </div>
               </div>
-              <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                <span className="stat-label">Ticket Médio</span>
-                <span className="stat-value">{formatarMoeda(dashboardStats.avgTicket)}</span>
-                <span className="badge badge-gray" style={{ marginTop: '0.5rem' }}>Por movimentação</span>
+
+              <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                <div className="flex flex-between items-center mb-2">
+                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Ajustes Manuais</span>
+                   <div style={{ color: 'var(--warning)', background: 'var(--warning-bg)', padding: '6px', borderRadius: '8px' }}>
+                     <PenLine size={16} />
+                   </div>
+                </div>
+                <div className="text-2xl font-black text-gray-900 leading-tight">
+                  {formatarMoeda(dashboardStats.adjustments || 0)}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                   <AlertCircle size={14} className="text-warning" />
+                   <span className="text-xs font-bold text-warning uppercase">Saldo de Correções</span>
+                </div>
               </div>
-              <div className="stat-card" style={{ flexDirection: 'column', alignItems: 'flex-start', padding: '1.5rem' }}>
-                <span className="stat-label">Volume Total</span>
-                <span className="stat-value">{dashboardStats.count}</span>
-                <span className="badge badge-gray" style={{ marginTop: '0.5rem' }}>Transações registradas</span>
+
+              <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                <div className="flex flex-between items-center mb-2">
+                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Ticket Médio</span>
+                   <div style={{ color: 'var(--brand-accent)', background: 'var(--info-bg)', padding: '6px', borderRadius: '8px' }}>
+                     <Activity size={16} />
+                   </div>
+                </div>
+                <div className="text-2xl font-black text-gray-900 leading-tight">
+                  {formatarMoeda(dashboardStats.avgTicket)}
+                </div>
+                <div className="mt-3 flex items-center gap-2">
+                   <BarChart3 size={14} className="text-info" />
+                   <span className="text-xs font-bold text-info uppercase">Indicador Unitário</span>
+                </div>
               </div>
             </div>
-          </div>
+          </section>
 
           <div>
              <h3 className="card-title" style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Performance por Unidade</h3>
              <p className="card-subtitle" style={{ marginBottom: '1.5rem' }}>Desempenho financeiro detalhado por carteira</p>
              
-             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '1.5rem' }}>
-                {[...operations].sort((a, b) => {
+             <div className="grid-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
+                {[...operations].sort((a: any, b: any) => {
                   const getWeight = (dateStr: string) => {
                     if (!dateStr) return 3;
                     const diff = new Date().getTime() - new Date(dateStr).getTime();
@@ -483,8 +684,8 @@ export default function FaturamentoPage() {
                     return 2; // Offline
                   };
                   return getWeight(a.ultima_sincronizacao) - getWeight(b.ultima_sincronizacao);
-                }).map(op => {
-                  const opResumos = allResumos.filter(r => r.operacao_id === op.id);
+                }).map((op: any) => {
+                  const opResumos = allResumos.filter((r: any) => r.operacao_id === op.id);
                   const periodResumos = getEnrichedFilteredSummaries(opResumos, dashboardPeriod, op.id);
                   const opStats = calculateStats(periodResumos);
 
@@ -494,7 +695,7 @@ export default function FaturamentoPage() {
                   const last7Days = Array.from({length: 7}, (_, i) => {
                     const d = new Date(); d.setDate(d.getDate() - (6 - i));
                     const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                    const r = opResumos.find(res => res.data_referencia === ds);
+                    const r = opResumos.find((res: any) => res.data_referencia === ds);
                     return (Number(r?.total_receita_ajustada) || 0) + 
                            (Number(r?.total_avulso_ajustado) || 0) + 
                            (Number(r?.total_mensalista_ajustado) || 0);
@@ -505,32 +706,34 @@ export default function FaturamentoPage() {
                   const lastMoveDate = op.ultimo_movimento_em ? new Date(op.ultimo_movimento_em) : null;
 
                   return (
-                    <div key={op.id} className="card" onClick={() => abrirDetalheOperacao(op)} style={{ padding: '1.5rem', cursor: 'pointer', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minHeight: '240px', transition: 'transform 0.2s, box-shadow 0.2s' }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem', alignItems: 'flex-start' }}>
-                          <div style={{ background: 'var(--bg-app)', padding: '0.6rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                            <MapPin size={22} color="var(--brand-primary)" />
-                          </div>
-                          <SyncStatusBadge lastSync={lastSyncDate} lastMove={lastMoveDate} />
+                    <div key={op.id} className="card stat-card" onClick={() => abrirDetalheOperacao(op)} style={{ cursor: 'pointer', minHeight: '260px' }}>
+                      <header className="flex flex-between mb-4">
+                        <div style={{ background: 'var(--brand-primary-light)', padding: '0.625rem', borderRadius: '12px', color: 'var(--brand-primary)' }}>
+                          <MapPin size={22} />
                         </div>
-                        <h4 style={{ fontSize: '1.15rem', fontWeight: 800, margin: '0.5rem 0', color: 'var(--text-title)' }}>{op.nome_operacao}</h4>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>{op.sql_database || op.cidade}</span>
+                        <SyncStatusBadge lastSync={lastSyncDate} lastMove={lastMoveDate} />
+                      </header>
+
+                      <div className="flex flex-col gap-1 mb-6">
+                        <h4 className="text-lg font-bold" style={{ margin: 0 }}>{op.nome_operacao}</h4>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted font-bold text-uppercase tracking-wider">{op.sql_database || op.cidade}</span>
                           <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--gray-300)' }} />
-                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', fontWeight: 600 }}>ID: {op.codigo_operacao}</span>
+                          <span className="text-xs text-muted font-bold">ID: {op.codigo_operacao}</span>
                         </div>
                       </div>
-                      <div style={{ marginTop: '2rem' }}>
-                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: '1rem' }}>
+
+                      <div className="mt-auto">
+                         <div className="flex flex-between items-end mb-4">
                            <div>
-                             <span style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 600, display: 'block', marginBottom: '0.2rem' }}>Resultado Ajustado</span>
-                             <span style={{ fontSize: '1.6rem', fontWeight: 800, color: net >= 0 ? 'var(--text-title)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
+                             <span className="stat-label">Resultado Ajustado</span>
+                             <span className="stat-value" style={{ color: net >= 0 ? 'var(--gray-900)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
                            </div>
-                           <div style={{ textAlign: 'right' }}>
-                             <span className="badge badge-gray" style={{ fontSize: '0.7rem' }}>{periodResumos.reduce((acc, r) => acc + r.quantidade_movimentos, 0)} transações</span>
+                           <div className="text-right">
+                             <span className="badge badge-gray">{periodResumos.reduce((acc: number, r: any) => acc + r.quantidade_movimentos, 0)} Movs</span>
                            </div>
                          </div>
-                         <MiniLineChart data={last7Days} color={net >= 0 ? "var(--brand-primary)" : "#ef4444"} />
+                         <MiniLineChart data={last7Days} color={net >= 0 ? "var(--brand-primary)" : "var(--danger)"} />
                       </div>
                     </div>
                   );
@@ -541,412 +744,386 @@ export default function FaturamentoPage() {
       )}
 
       {view === 'detalhe' && selectedOp && (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem', maxWidth: '100%', overflowX: 'hidden' }}>
+        <div className="flex flex-col gap-6">
           
-          <div className="card" style={{ padding: '2rem' }}>
-             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
-                 <button className="btn btn-secondary btn-sm" onClick={() => setView('dashboard')}>
-                    <ChevronLeft size={16} /> Voltar
-                 </button>
-                 <div>
-                    <h2 className="card-title" style={{ fontSize: '1.6rem' }}>{selectedOp.nome_operacao}</h2>
-                    <p className="card-subtitle">Visão Fechada Operacional</p>
+          <section className="card" style={{ padding: '1.5rem 1.75rem', marginBottom: '0.5rem' }}>
+             <header className="flex flex-between items-center mb-8" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+                 <div className="flex items-center gap-4">
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => setView('dashboard')}
+                      style={{ width: '40px', height: '40px', padding: 0, borderRadius: '12px' }}
+                    >
+                       <ChevronLeft size={20} />
+                    </button>
+                    <div>
+                       <h2 className="text-xl font-bold" style={{ margin: 0, letterSpacing: '-0.02em' }}>{selectedOp.nome_operacao}</h2>
+                       <p className="text-muted text-xs font-bold text-uppercase tracking-widest mt-1">Detalhamento Operacional</p>
+                    </div>
                  </div>
-             </div>
+                 <div className="flex items-center gap-3">
+                    <span className="badge badge-gray" style={{ padding: '0.5rem 0.75rem' }}>ID: {selectedOp.codigo_operacao}</span>
+                 </div>
+             </header>
 
-              {(() => {
-                const dayData = dailySummaries.find(s => s.date === activeDate);
-                const totalRev = Number(dayData?.total || 0);
-                const net = Number(dayData?.net_total || 0);
-                const totalExp = Number(allResumos.find(r => r.operacao_id === selectedOp.id && r.data_referencia === activeDate)?.total_despesa_ajustada || 0);
-                const vol = dayData?.count || 0;
+               {(() => {
+                 const totalRev = manualStats.revenue;
+                 const totalExp = manualStats.expense;
+                 const net = manualStats.net;
+                 const vol = tickets.length;
 
+                 return (
+                   <div style={{ 
+                     display: 'grid', 
+                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                     gap: '1rem' 
+                   }}>
+                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Receita Total</span>
+                        <span className="text-2xl font-black text-gray-900">{formatarMoeda(totalRev)}</span>
+                     </div>
+                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Despesa Total</span>
+                        <span className="text-2xl font-black text-danger">{formatarMoeda(totalExp)}</span>
+                     </div>
+                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Resultado Líquido</span>
+                        <span className="text-2xl font-black" style={{ color: net >= 0 ? 'var(--success-dark)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
+                     </div>
+                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Volume Total</span>
+                        <span className="text-2xl font-black text-gray-900">{vol} <span className="text-sm font-bold opacity-40">Movs</span></span>
+                     </div>
+                   </div>
+                 );
+               })()}
+            </section>
+
+          <div className="flex gap-3 mb-6" style={{ overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', maskImage: 'linear-gradient(to right, black 90%, transparent)' }}>
+             {dailySummaries.map((summary: any) => {
+                const dateObj = new Date(summary.date + 'T12:00:00');
+                const isSelected = activeDate === summary.date;
                 return (
-                  <div className="stats-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
-                    <div className="stat-card" style={{ padding: '1rem' }}>
-                      <div><span className="stat-label">Receitas Ajustadas</span><br/><span className="stat-value" style={{ fontSize: '1.5rem' }}>{formatarMoeda(totalRev)}</span></div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '1rem' }}>
-                      <div><span className="stat-label">Despesas Ajustadas</span><br/><span className="stat-value" style={{ fontSize: '1.5rem', color: 'var(--danger)' }}>{formatarMoeda(totalExp)}</span></div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '1rem', background: net >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)' }}>
-                      <div><span className="stat-label" style={{ color: 'var(--gray-700)' }}>Resultado Líquido</span><br/><span className="stat-value" style={{ fontSize: '1.5rem', color: net >= 0 ? 'var(--success)' : 'var(--danger)' }}>{formatarMoeda(net)}</span></div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '1rem' }}>
-                      <div><span className="stat-label">Movimentação</span><br/><span className="stat-value" style={{ fontSize: '1.5rem' }}>{vol} transações</span></div>
-                    </div>
-                  </div>
+                  <button
+                     key={summary.date}
+                     onClick={() => setActiveDate(summary.date)}
+                     className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                     style={{ 
+                       height: 'auto', 
+                       padding: '0.625rem 1rem', 
+                       borderRadius: '16px', 
+                       flexShrink: 0, 
+                       minWidth: '100px',
+                       borderWidth: isSelected ? '1px' : '1px',
+                       borderColor: isSelected ? 'var(--brand-primary)' : 'var(--gray-200)',
+                       boxShadow: isSelected ? 'var(--shadow-md)' : 'none'
+                     }}
+                  >
+                     <div className="flex flex-col items-center">
+                        <span className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ opacity: isSelected ? 0.9 : 0.4 }}>
+                          {dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })}
+                        </span>
+                        <span className="text-xl font-black">{dateObj.getDate()}</span>
+                     </div>
+                  </button>
                 );
-              })()}
-          </div>
-
-          <div style={{ display: 'flex', gap: '0.5rem', overflowX: 'auto', paddingBottom: '0.5rem' }}>
-             {dailySummaries.map((summary) => (
-                <button
-                   key={summary.date}
-                   onClick={() => setActiveDate(summary.date)}
-                   style={{
-                     padding: '0.75rem 1.5rem', borderRadius: '12px', minWidth: '100px', cursor: 'pointer', border: '1px solid var(--border-color)',
-                     background: activeDate === summary.date ? 'var(--text-title)' : 'var(--bg-card)',
-                     color: activeDate === summary.date ? 'var(--bg-card)' : 'var(--text-main)',
-                     fontWeight: 700, fontSize: '0.8rem', textAlign: 'center'
-                   }}
-                >
-                   <div style={{ display: 'block', textTransform: 'uppercase', fontSize: '0.65rem', marginBottom: '0.2rem', opacity: 0.8 }}>{new Date(summary.date + 'T12:00:00').toLocaleDateString('pt-BR', { weekday: 'short' })}</div>
-                   <div style={{ fontSize: '1.1rem' }}>{new Date(summary.date + 'T12:00:00').getDate()}</div>
-                </button>
-             ))}
+             })}
           </div>
 
           {(() => {
              const dayData = dailySummaries.find((s: any) => s.date === activeDate);
-             const tickets: any[] = dayData?.tickets || [];
-             const adjustments: any[] = dayData?.ajustes || [];
+             const adjustmentsByDay: any[] = dayData?.ajustes || [];
              
              const byType = dayData?.resumo_tipo || {};
-             const byPayment = dayData?.resumo_forma || {};
-
              const totalRevenue = Object.values(byType).reduce((a: number, b: any) => a + Number(b.total || 0), 0) || 1;
              const isAjustado = dayData?.is_ajustado;
              const op = selectedOp;
 
              return (
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div style={{ display: 'flex', gap: '1rem' }}>
-                      {op.ultima_sincronizacao ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem' }}>
-                          <div style={{ color: 'var(--success-dark)', fontSize: '0.9rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                             <Zap size={16} />
-                             Saúde do Agente: Ativo (Reportado em {new Date(op.ultima_sincronizacao).toLocaleString('pt-BR')})
+               <div className="flex flex-col gap-6">
+                  <header className="flex flex-between items-center mb-5">
+                     <div className="flex gap-4 items-center">
+                       {op.ultima_sincronizacao ? (
+                          <div className="flex items-center gap-2 text-success font-black text-[10px] uppercase tracking-wider">
+                             <Zap size={14} />
+                             Sincronizado: {new Date(op.ultima_sincronizacao).toLocaleString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
                           </div>
-                        </div>
-                      ) : (
-                        <div style={{ color: 'var(--gray-500)', fontSize: '0.85rem' }}>Nenhum agente reportou saúde recentemente.</div>
-                      )}
+                       ) : (
+                         <div className="text-muted text-[10px] font-black uppercase tracking-wider">Agente em Pausa</div>
+                       )}
 
-                      {isAjustado && (
-                        <div style={{ background: 'var(--warning-bg)', color: 'var(--warning-dark)', padding: '0.5rem 1rem', borderRadius: '8px', border: '1px solid var(--warning-opacity)', fontSize: '0.85rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <AlertCircle size={16} />
-                          Existem ajustes financeiros aplicados a este dia.
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '0.75rem' }}>
-                       <button onClick={() => setShowAjusteModal(true)} style={{ background: 'var(--text-title)', color: 'var(--bg-card)', border: 'none', padding: '0.75rem 1.25rem', borderRadius: '12px', fontSize: '0.85rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                         <PenLine size={16} />
-                         Ajuste Financeiro
-                       </button>
-                    </div>
-                 </div>
-
-                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '1.5rem', width: '100%' }}>
-                   <div className="card">
-                     <div className="card-header">
-                       <h3 className="card-title">Resumo por Pagamento</h3>
+                       {isAjustado && (
+                         <span className="badge badge-warning">
+                            <AlertCircle size={14} style={{ marginRight: '4px' }} /> Ajustes aplicados
+                         </span>
+                       )}
                      </div>
-                     <div className="card-body">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
-                          {Object.entries(byPayment).sort((a:any, b:any) => Number(b[1].total) - Number(a[1].total)).map(([type, stats]: any) => {
-                             const percent = ((stats.total / (dayData?.total || 1)) * 100).toFixed(1);
-                             return (
-                               <div key={type} style={{ background: 'var(--gray-50)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--gray-100)' }}>
-                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                   <Tag size={16} color="var(--gray-400)" />
-                                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)' }}>{percent}%</span>
+
+                     <button onClick={() => setShowAjusteModal(true)} className="btn btn-primary btn-sm" style={{ borderRadius: '10px', padding: '0.5rem 1rem' }}>
+                        <Plus size={16} /> Lançar Ajuste
+                     </button>
+                  </header>
+
+                  <div className="grid-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
+                     {ESTRUTURA_FATURAMENTO.map((grupoObj) => {
+                       const itensDoGrupo = grupoObj.itens;
+                       
+                       const subtotalMovimentos = itensDoGrupo.reduce((acc: number, catName: string) => {
+                         return acc + tickets.filter((t: any) => classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === catName)
+                           .reduce((sum: number, m: any) => sum + Number(m.valor || 0), 0);
+                       }, 0);
+
+                       const subtotalAjustes = adjustmentsByDay.filter((a: any) => {
+                         if (grupoObj.grupo === 'ROTATIVO') return a.tipo_ajuste === 'Avulso';
+                         if (grupoObj.grupo === 'MENSALISTA') return a.tipo_ajuste === 'Mensalista';
+                         if (grupoObj.grupo === 'OUTROS') return a.tipo_ajuste === 'Receita' || a.tipo_ajuste === 'Despesa';
+                         return false;
+                       }).reduce((acc: number, a: any) => acc + (a.tipo_ajuste === 'Despesa' ? -Number(a.valor) : Number(a.valor)), 0);
+
+                       const subtotalGrupo = subtotalMovimentos + subtotalAjustes;
+
+                       return (
+                         <div key={grupoObj.grupo} className="card" style={{ padding: 0 }}>
+                            <header className="flex flex-between" style={{ padding: '1rem 1.25rem', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-100)' }}>
+                               <h3 className="text-xs font-bold text-uppercase tracking-wider text-muted m-0">
+                                 {grupoObj.grupo}
+                               </h3>
+                               <span className="font-bold text-gray-900">{formatarMoeda(subtotalGrupo)}</span>
+                            </header>
+                            <div className="flex flex-col">
+                               {itensDoGrupo.map((catName) => {
+                                 const movs = tickets.filter((t: any) => classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === catName);
+                                 const total = movs.reduce((sum: number, m: any) => sum + Number(m.valor || 0), 0);
+                                 const count = movs.length;
+                                 const percent = ((total / (totalRevenue || 1)) * 100).toFixed(1);
+                                 const isSelected = filterCategory === catName;
+                                 const styles = getCategoriaStyles(catName);
+
+                                 return (
+                                   <div 
+                                     key={catName} 
+                                     onClick={() => setFilterCategory(isSelected ? null : catName)}
+                                     style={{ 
+                                       padding: '0.75rem 1.25rem',
+                                       borderBottom: '1px solid var(--gray-50)',
+                                       cursor: 'pointer',
+                                       backgroundColor: isSelected ? 'var(--gray-50)' : 'transparent',
+                                       opacity: count === 0 ? 0.4 : 1,
+                                       borderLeft: isSelected ? '4px solid var(--brand-primary)' : '4px solid transparent',
+                                       display: 'flex',
+                                       justifyContent: 'space-between',
+                                       alignItems: 'center',
+                                       transition: 'var(--transition)'
+                                     }}
+                                   >
+                                     <div className="flex items-center gap-3">
+                                       <div style={{ 
+                                         background: styles.bg, 
+                                         color: styles.color,
+                                         width: '32px', height: '32px',
+                                         borderRadius: '8px',
+                                         display: 'flex', alignItems: 'center', justifyContent: 'center'
+                                       }}>
+                                         {styles.icon}
+                                       </div>
+                                       <div>
+                                         <div className="font-bold text-xs text-gray-900">{catName}</div>
+                                         <div className="text-xs text-muted" style={{ fontSize: '0.65rem' }}>{count} movs • {percent}%</div>
+                                       </div>
+                                     </div>
+                                     <span className="font-bold text-sm text-gray-900">{formatarMoeda(total)}</span>
+                                   </div>
+                                 );
+                               })}
+                               
+                               {/* Ajustes no Grupo */}
+                               {adjustmentsByDay.filter((a: any) => {
+                                 if (grupoObj.grupo === 'ROTATIVO') return a.tipo_ajuste === 'Avulso';
+                                 if (grupoObj.grupo === 'MENSALISTA') return a.tipo_ajuste === 'Mensalista';
+                                 if (grupoObj.grupo === 'OUTROS') return a.tipo_ajuste === 'Receita' || a.tipo_ajuste === 'Despesa';
+                                 return false;
+                               }).map(ajuste => (
+                                 <div key={ajuste.id} style={{ padding: '0.75rem 1.25rem', background: 'var(--brand-primary-light)', borderLeft: '4px solid var(--brand-primary)', borderBottom: '1px solid var(--gray-100)', display: 'flex', justifyContent: 'space-between' }}>
+                                    <div>
+                                      <div className="text-xs font-bold text-primary">Ajuste: {ajuste.categoria_ajuste || 'Manual'}</div>
+                                      <div className="text-xs text-muted" style={{ fontSize: '0.65rem' }}>{ajuste.motivo}</div>
+                                    </div>
+                                    <span className="font-bold text-xs" style={{ color: ajuste.sinal === 1 ? 'var(--success-dark)' : 'var(--danger)' }}>
+                                      {ajuste.sinal === 1 ? '+' : '-'}{formatarMoeda(ajuste.valor)}
+                                    </span>
                                  </div>
-                                 <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, marginBottom: '0.2rem' }}>{type}</div>
-                                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-800)', marginBottom: '0.2rem' }}>{formatarMoeda(stats.total)}</div>
-                                 <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>{stats.count} Registros</div>
-                               </div>
-                             )
-                          })}
-                        </div>
-                     </div>
-                   </div>
-
-                   <div className="card">
-                     <div className="card-header">
-                       <h3 className="card-title">Resumo por Categoria</h3>
-                     </div>
-                     <div className="card-body">
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '1rem' }}>
-                          {Object.entries(byType).sort((a:any, b:any) => Number(b[1].total) - Number(a[1].total)).map(([type, stats]: any) => {
-                             const percent = ((stats.total / (dayData?.total || 1)) * 100).toFixed(1);
-                             return (
-                               <div key={type} style={{ background: 'var(--gray-50)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--gray-100)' }}>
-                                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '1rem' }}>
-                                   <Tag size={16} color="var(--gray-400)" />
-                                   <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)' }}>{percent}%</span>
-                                 </div>
-                                 <div style={{ fontSize: '0.7rem', textTransform: 'uppercase', color: 'var(--gray-400)', fontWeight: 700, marginBottom: '0.2rem' }}>{type}</div>
-                                 <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--gray-800)', marginBottom: '0.2rem' }}>{formatarMoeda(stats.total)}</div>
-                                 <div style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>{stats.count} Registros</div>
-                               </div>
-                             )
-                          })}
-                        </div>
-                     </div>
-                   </div>
-                 </div>
-
-                 {adjustments.length > 0 && (
-                    <div className="card" style={{ marginTop: '2rem' }}>
-                      <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                         <h3 className="card-title">Ajustes Financeiros Aplicados</h3>
-                         <span className="badge badge-purple">{adjustments.length} correção(ões)</span>
-                      </div>
-                      <div className="card-body" style={{ padding: 0 }}>
-                         <div className="table-container">
-                           <table className="table" style={{ border: 'none' }}>
-                             <thead>
-                               <tr>
-                                 <th>Data/Hora</th>
-                                 <th>Tipo</th>
-                                 <th style={{ textAlign: 'right' }}>Valor</th>
-                                 <th>Motivo</th>
-                                 <th style={{ textAlign: 'right' }}>Ações</th>
-                               </tr>
-                             </thead>
-                             <tbody>
-                               {adjustments.map((aju: any) => (
-                                 <tr key={aju.id}>
-                                   <td style={{ fontSize: '0.8rem' }}>{new Date(aju.criado_em).toLocaleString('pt-BR')}</td>
-                                   <td>
-                                      <span className={`badge ${aju.tipo_ajuste === 'Receita' ? 'badge-green' : 'badge-red'}`}>
-                                        {aju.tipo_ajuste}: {aju.sinal === 1 ? 'Adicionar' : 'Remover'}
-                                      </span>
-                                   </td>
-                                   <td style={{ fontWeight: 700, color: aju.sinal === 1 ? 'var(--success)' : 'var(--danger)', textAlign: 'right' }}>
-                                      {aju.sinal === 1 ? '+' : '-'}{formatarMoeda(aju.valor)}
-                                   </td>
-                                   <td style={{ fontSize: '0.85rem', color: 'var(--gray-600)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={aju.motivo}>
-                                      {aju.motivo}
-                                   </td>
-                                   <td style={{ textAlign: 'right' }}>
-                                      <button 
-                                        onClick={() => handleRemoverAjuste(aju.id)}
-                                        style={{ background: 'transparent', border: 'none', color: 'var(--danger)', cursor: 'pointer', padding: '0.5rem', borderRadius: '8px', display: 'flex', alignItems: 'center', gap: '0.3rem', marginLeft: 'auto' }}
-                                        title="Remover ajuste"
-                                      >
-                                        <RefreshCcw size={14} /> Desfazer
-                                      </button>
-                                   </td>
-                                 </tr>
                                ))}
-                             </tbody>
-                           </table>
+                            </div>
                          </div>
-                      </div>
-                    </div>
-                 )}
+                       );
+                    })}
+                  </div>
 
-                 <div className="card table-container" style={{ maxWidth: '100%', overflowX: 'auto' }}>
-                    <table className="table">
-                      <thead>
-                        <tr>
-                          <th>ID Local</th>
-                          <th>Entrada / Saída</th>
-                          <th>Natureza</th>
-                          <th>F. Pagamento</th>
-                          <th style={{ textAlign: 'right' }}>Valor Registrado</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {tickets.map((t: any, idx: number) => (
-                          <tr key={idx}>
-                            <td>
-                              <span style={{ fontFamily: 'monospace', background: 'var(--gray-100)', padding: '0.2rem 0.5rem', borderRadius: '4px', fontSize: '0.8rem' }}>
-                                {t.ticket_id || t.ticket_label || 'Avulso'}
-                              </span>
-                            </td>
-                            <td style={{ fontSize: '0.8rem', color: 'var(--gray-500)' }}>
-                              <div>{t.data_entrada ? new Date(t.data_entrada).toLocaleString('pt-BR') : '-'}</div>
-                              <div style={{ fontWeight: 600, color: 'var(--gray-800)', marginTop: '0.2rem' }}>{t.data_saida ? new Date(t.data_saida).toLocaleString('pt-BR') : '-'}</div>
-                            </td>
-                            <td><span className="badge badge-gray">{t.tipo_movimento || 'N/A'}</span></td>
-                            <td><span style={{ fontSize: '0.8rem', fontWeight: 600, textTransform: 'uppercase' }}>{t.forma_pagamento || 'Indefinido'}</span></td>
-                            <td style={{ textAlign: 'right', fontWeight: 700, fontSize: '0.9rem', color: t.tipo_movimento === 'Despesa' ? 'var(--danger)' : 'var(--gray-800)' }}>
-                              {t.tipo_movimento === 'Despesa' ? '-' : ''}{formatarMoeda(Number(t.valor))}
-                            </td>
-                          </tr>
-                        ))}
-                        {tickets.length === 0 && (
-                           <tr><td colSpan={5} className="table-empty">Sem movimentações na data selecionada.</td></tr>
-                        )}
-                      </tbody>
-                    </table>
+                  <div className="card" style={{ padding: 0 }}>
+                    <header className="flex flex-between mb-0" style={{ padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--gray-100)' }}>
+                       <div>
+                         <h3 className="card-title" style={{ fontSize: '1rem' }}>Relatório de Movimentações</h3>
+                         <p className="text-muted text-xs">Exibindo lançamentos reais registrados no agente</p>
+                       </div>
+                       {isLoadingDetails && (
+                         <div className="flex items-center gap-2 text-primary font-bold text-xs">
+                            <RefreshCcw size={14} className="rotate-animation" /> Sincronizando...
+                         </div>
+                       )}
+                    </header>
+                    <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
+                       <table className="table">
+                         <thead>
+                           <tr>
+                             <th>ID / Ticket</th>
+                             <th>Entrada / Saída</th>
+                             <th>Natureza</th>
+                             <th>F. Pagamento</th>
+                             <th className="text-right">Valor</th>
+                           </tr>
+                         </thead>
+                         <tbody>
+                           {tickets
+                             .filter((t: any) => !filterCategory || classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === filterCategory)
+                             .map((t: any, idx: number) => (
+                             <tr key={idx}>
+                               <td>
+                                 <span className="badge badge-gray" style={{ fontFamily: 'monospace' }}>
+                                   {t.ticket_id || t.ticket_label || 'vinc-sql'}
+                                 </span>
+                               </td>
+                               <td className="text-xs">
+                                 <div className="text-muted">{t.data_entrada ? new Date(t.data_entrada).toLocaleString('pt-BR') : '-'}</div>
+                                 <div className="font-bold text-gray-800">{t.data_saida ? new Date(t.data_saida).toLocaleString('pt-BR') : '-'}</div>
+                               </td>
+                               <td><span className="badge badge-primary">{t.tipo_movimento || 'N/A'}</span></td>
+                               <td><span className="text-xs font-bold text-uppercase">{t.forma_pagamento || 'Crédito/Débito'}</span></td>
+                               <td className="text-right font-bold text-gray-900">
+                                 {t.tipo_movimento === 'Despesa' ? '-' : ''}{formatarMoeda(Number(t.valor))}
+                               </td>
+                             </tr>
+                           ))}
+                           {tickets.length === 0 && (
+                             <tr><td colSpan={5} className="text-center py-8 text-muted italic">Sem movimentações carregadas.</td></tr>
+                           )}
+                         </tbody>
+                       </table>
+                    </div>
                   </div>
                </div>
-             )
-           })()}
+             );
+          })()}
         </div>
       )}
 
-      {/* Modal de Ajuste Refatorado e Compactado */}
+      {/* Modal de Ajuste Refatorado */}
       {showAjusteModal && (
-        <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(8px)', padding: '1rem' }}>
-          <div className="card" style={{ 
-            width: 'min(100%, 500px)', 
-            maxHeight: '90vh',
-            borderRadius: '24px', 
-            padding: '0', 
-            overflow: 'hidden', 
-            display: 'flex',
-            flexDirection: 'column',
-            boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', 
-            border: '1px solid var(--border-color)' 
-          }}>
+        <div className="modal-overlay">
+          <div className="card" style={{ width: 'min(90%, 500px)', padding: 0, overflow: 'hidden' }}>
             
-            {/* Cabeçalho Fixo */}
-            <div style={{ padding: '1.25rem 1.5rem', background: 'var(--bg-app)', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, marginBottom: '0.25rem', color: 'var(--text-title)' }}>Novo Ajuste Financeiro</h3>
-              <p style={{ color: 'var(--gray-500)', fontSize: '0.75rem', lineHeight: '1.2' }}>
-                Este ajuste altera apenas os totais resumidos na data selecionada.
-              </p>
-              
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem', background: 'var(--bg-card)', padding: '0.75rem', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
-                 <div style={{ flex: 1 }}>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', display: 'block' }}>Operação</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--brand-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{selectedOp?.nome_operacao}</span>
-                 </div>
-                 <div style={{ width: '1px', background: 'var(--border-color)' }} />
-                 <div>
-                    <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--gray-400)', textTransform: 'uppercase', display: 'block' }}>Referente ao dia</span>
-                    <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--text-title)', whiteSpace: 'nowrap' }}>{activeDate ? new Date(activeDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}</span>
-                 </div>
-              </div>
-            </div>
+            <header style={{ padding: '1.25rem 1.5rem', background: 'var(--gray-50)', borderBottom: '1px solid var(--gray-100)' }}>
+              <h3 className="text-lg font-bold m-0 text-gray-900">Novo Ajuste Financeiro</h3>
+              <p className="text-xs text-muted m-0 mt-1">Este ajuste altera os totais consolidados na data selecionada.</p>
+            </header>
 
-            {/* Corpo Rolável */}
-            <div style={{ padding: '1.5rem', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '1.25rem', flex: 1 }}>
+            <div style={{ padding: '1.5rem', display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+               <div className="flex gap-4 p-3 rounded-lg border border-gray-200 bg-gray-50">
+                  <div className="flex-1">
+                     <span className="text-xs font-bold text-muted text-uppercase display-block">Operação</span>
+                     <span className="text-sm font-bold text-primary display-block truncate">{selectedOp?.nome_operacao}</span>
+                  </div>
+                  <div style={{ width: '1px', background: 'var(--gray-200)' }} />
+                  <div>
+                     <span className="text-xs font-bold text-muted text-uppercase display-block">Referente ao dia</span>
+                     <span className="text-sm font-bold text-gray-900 display-block">
+                        {activeDate ? new Date(activeDate + 'T12:00:00').toLocaleDateString('pt-BR') : '-'}
+                     </span>
+                  </div>
+               </div>
                
-               <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Categoria do Resumo</label>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.4rem' }}>
+               <div className="form-group">
+                  <label className="form-label">Categoria do Resumo</label>
+                  <div className="flex gap-2" style={{ flexWrap: 'wrap' }}>
                     {['Receita', 'Despesa', 'Avulso', 'Mensalista'].map(cat => (
                       <button 
                         key={cat}
                         onClick={() => setAjusteType(cat)}
-                        style={{
-                          padding: '0.6rem', borderRadius: '10px', border: '1px solid',
-                          borderColor: ajusteType === cat ? 'var(--brand-primary)' : 'var(--border-color)',
-                          background: ajusteType === cat ? 'var(--brand-primary-light)' : 'var(--bg-card)',
-                          color: ajusteType === cat ? 'var(--brand-primary-dark)' : 'var(--gray-600)',
-                          fontWeight: 700, fontSize: '0.8rem', cursor: 'pointer', transition: 'all 0.2s'
-                        }}
+                        className={`btn btn-sm ${ajusteType === cat ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1, minWidth: '100px', borderRadius: '10px' }}
                       >{cat}</button>
                     ))}
                   </div>
                </div>
 
-               <div>
-                  <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Tipo de Impacto</label>
-                  <div style={{ display: 'flex', background: 'var(--bg-app)', padding: '0.25rem', borderRadius: '12px', gap: '0.25rem' }}>
+               <div className="form-group">
+                  <label className="form-label">Tipo de Impacto</label>
+                  <div className="flex gap-2 p-1 rounded-xl bg-gray-100">
                     <button 
                       onClick={() => setAjusteSinal(1)} 
-                      style={{ 
-                        flex: 1, padding: '0.6rem', borderRadius: '10px', border: 'none', 
-                        background: ajusteSinal === 1 ? 'var(--success)' : 'transparent', 
-                        color: ajusteSinal === 1 ? '#fff' : 'var(--gray-500)', 
-                        fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                        fontSize: '0.8rem'
-                      }}
+                      className={`btn btn-sm flex-1 ${ajusteSinal === 1 ? 'btn-success' : 'btn-ghost'}`}
+                      style={{ borderRadius: '10px', color: ajusteSinal === 1 ? '#fff' : 'var(--gray-500)' }}
                     >
-                      <CheckCircle2 size={14} /> Adicionar (+)
+                      <PlusCircle size={16} /> Adicionar (+)
                     </button>
                     <button 
                       onClick={() => setAjusteSinal(-1)} 
-                      style={{ 
-                        flex: 1, padding: '0.6rem', borderRadius: '10px', border: 'none', 
-                        background: ajusteSinal === -1 ? 'var(--danger)' : 'transparent', 
-                        color: ajusteSinal === -1 ? '#fff' : 'var(--gray-500)', 
-                        fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
-                        fontSize: '0.8rem'
-                      }}
+                      className={`btn btn-sm flex-1 ${ajusteSinal === -1 ? 'btn-danger' : 'btn-ghost'}`}
+                      style={{ borderRadius: '10px', color: ajusteSinal === -1 ? '#fff' : 'var(--gray-500)' }}
                     >
-                      <AlertCircle size={14} /> Remover (-)
+                      <MinusCircle size={16} /> Remover (-)
                     </button>
                   </div>
                </div>
 
-               <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Valor do Ajuste</label>
-                    <div style={{ position: 'relative' }}>
-                      <span style={{ position: 'absolute', left: '0.85rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--gray-400)', fontSize: '0.9rem' }}>R$</span>
-                      <input 
-                        type="number" 
-                        step="0.01" 
-                        min="0.01"
-                        placeholder="0,00"
-                        value={ajusteValue} 
-                        onChange={e => setAjusteValue(e.target.value)}
-                        style={{ width: '100%', padding: '0.75rem 0.75rem 0.75rem 2.4rem', borderRadius: '12px', border: '2px solid var(--border-color)', outline: 'none', fontSize: '1.1rem', fontWeight: 800, color: 'var(--text-title)' }}
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--gray-600)', display: 'block', marginBottom: '0.5rem' }}>Motivo do Ajuste</label>
-                    <textarea 
-                      rows={2}
-                      placeholder="Ex: Correção de divergência..."
-                      value={ajusteMotivo} 
-                      onChange={e => setAjusteMotivo(e.target.value)}
-                      style={{ width: '100%', padding: '0.75rem', borderRadius: '12px', border: '2px solid var(--border-color)', outline: 'none', resize: 'none', fontSize: '0.85rem', lineHeight: '1.4' }}
+               <div className="form-group">
+                  <label className="form-label">Valor do Ajuste</label>
+                  <div style={{ position: 'relative' }}>
+                    <span style={{ position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)', fontWeight: 700, color: 'var(--gray-400)' }}>R$</span>
+                    <input 
+                      type="number" 
+                      step="0.01" 
+                      className="form-control"
+                      style={{ paddingLeft: '2.5rem', fontSize: '1.25rem', fontWeight: 800 }}
+                      placeholder="0,00"
+                      value={ajusteValue} 
+                      onChange={e => setAjusteValue(e.target.value)}
                     />
-                    <div style={{ fontSize: '0.65rem', color: ajusteMotivo.length < 10 ? 'var(--danger)' : 'var(--gray-400)', marginTop: '0.3rem', textAlign: 'right', fontWeight: 600 }}>
-                      Mínimo 10 caracteres ({ajusteMotivo.length}/10)
-                    </div>
                   </div>
                </div>
 
-               <div style={{ 
-                 padding: '1rem', borderRadius: '14px', 
-                 background: ajusteValue && parseFloat(ajusteValue) > 0 ? (ajusteSinal === 1 ? 'var(--success-bg)' : 'var(--danger-bg)') : 'var(--bg-app)', 
-                 border: '1px dashed' + (ajusteValue && parseFloat(ajusteValue) > 0 ? (ajusteSinal === 1 ? 'var(--success-opacity)' : 'var(--danger-opacity)') : 'var(--border-color)'),
-                 transition: 'all 0.3s'
-               }}>
-                  <span style={{ fontSize: '0.65rem', fontWeight: 800, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '0.05em', display: 'block', marginBottom: '0.4rem' }}>Resumo do Impacto</span>
-                  {ajusteValue && parseFloat(ajusteValue) > 0 ? (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <span style={{ fontSize: '0.95rem', fontWeight: 800, color: ajusteSinal === 1 ? 'var(--success-dark)' : 'var(--danger-dark)' }}>
-                        {ajusteType} receberá: {ajusteSinal === 1 ? '+' : '-'} {formatarMoeda(parseFloat(ajusteValue))}
-                      </span>
-                    </div>
-                  ) : (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 600 }}>Preencha os campos para visualizar o impacto.</span>
-                  )}
+               <div className="form-group">
+                  <label className="form-label">Motivo do Ajuste</label>
+                  <textarea 
+                    rows={3}
+                    className="form-control"
+                    placeholder="Ex: Correção de divergência no fechamento manual..."
+                    value={ajusteMotivo} 
+                    onChange={e => setAjusteMotivo(e.target.value)}
+                  />
+                  <div className="flex flex-between mt-1">
+                     <span className="text-xs text-muted">Explique a necessidade deste ajuste</span>
+                     <span className={`text-xs font-bold ${ajusteMotivo.length < 10 ? 'text-danger' : 'text-success'}`}>
+                        {ajusteMotivo.length}/10
+                     </span>
+                  </div>
                </div>
             </div>
 
-            <div style={{ padding: '1.25rem 1.5rem', display: 'flex', gap: '0.75rem', background: 'var(--bg-app)', borderTop: '1px solid var(--border-color)' }}>
-               <button 
-                  onClick={() => setShowAjusteModal(false)} 
-                  style={{ flex: 1, padding: '0.85rem', borderRadius: '14px', border: '1px solid var(--border-color)', background: 'var(--bg-card)', color: 'var(--gray-600)', fontWeight: 700, cursor: 'pointer', fontSize: '0.85rem' }}
-                >Cancelar</button>
+            <footer className="flex gap-3 p-4 bg-gray-50 border-t border-gray-100">
+               <button onClick={() => setShowAjusteModal(false)} className="btn btn-secondary flex-1">
+                  Cancelar
+               </button>
                <button 
                   onClick={handleSalvarAjuste} 
                   disabled={isSubmittingAjuste || !ajusteValue || parseFloat(ajusteValue) <= 0 || ajusteMotivo.length < 10} 
-                  style={{ 
-                    flex: 1.5, padding: '0.85rem', borderRadius: '14px', border: 'none', 
-                    background: 'var(--text-title)', color: 'var(--bg-card)', 
-                    fontWeight: 800, cursor: 'pointer', transition: 'all 0.2s',
-                    fontSize: '0.85rem',
-                    opacity: (isSubmittingAjuste || !ajusteValue || parseFloat(ajusteValue) <= 0 || ajusteMotivo.length < 10) ? 0.4 : 1,
-                    boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)'
-                  }}
-                >
-                 {isSubmittingAjuste ? 'Aplicando...' : 'Aplicar Ajuste'}
+                  className="btn btn-primary flex-2"
+               >
+                  {isSubmittingAjuste ? 'Aplicando...' : 'Confirmar Ajuste'}
                </button>
-            </div>
+            </footer>
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

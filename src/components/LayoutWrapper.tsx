@@ -21,7 +21,23 @@ import BottomNav from './BottomNav';
 
 export default function LayoutWrapper({ children, user }: LayoutWrapperProps) {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const pathname = usePathname();
+
+  // Carregar preferência do menu do localStorage
+  useEffect(() => {
+    const savedState = localStorage.getItem('sidebar-collapsed');
+    if (savedState === 'true') {
+      setIsSidebarCollapsed(true);
+    }
+  }, []);
+
+  // Salvar preferência ao mudar
+  const toggleSidebar = () => {
+    const newState = !isSidebarCollapsed;
+    setIsSidebarCollapsed(newState);
+    localStorage.setItem('sidebar-collapsed', String(newState));
+  };
 
   // Fechar menu ao mudar de rota
   useEffect(() => {
@@ -38,7 +54,7 @@ export default function LayoutWrapper({ children, user }: LayoutWrapperProps) {
   }, [isMenuOpen]);
 
   return (
-    <div className={`app-layout ${isMenuOpen ? 'menu-open' : ''}`}>
+    <div className="app-layout">
       {/* Overlay para fechar o menu ao clicar fora */}
       {isMenuOpen && (
         <div 
@@ -47,12 +63,17 @@ export default function LayoutWrapper({ children, user }: LayoutWrapperProps) {
         />
       )}
 
-      {/* Sidebar com classe condicional para mobile */}
-      <div className={`sidebar-container ${isMenuOpen ? 'open' : ''}`}>
-        <Sidebar user={user} onClose={() => setIsMenuOpen(false)} />
+      {/* Sidebar com classe condicional para mobile e colapsado */}
+      <div className={`sidebar-container ${isMenuOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`}>
+        <Sidebar 
+          user={user} 
+          onClose={() => setIsMenuOpen(false)} 
+          isCollapsed={isSidebarCollapsed}
+          onToggle={toggleSidebar}
+        />
       </div>
 
-      <div className="main-content">
+      <div className={`main-content ${isSidebarCollapsed ? 'collapsed' : ''}`}>
         <Topbar 
           user={user} 
           onMenuToggle={() => setIsMenuOpen(!isMenuOpen)} 
