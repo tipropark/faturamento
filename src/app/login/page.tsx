@@ -40,45 +40,64 @@ export default function LoginPage() {
         <div className="login-logo">
           <div style={{ 
             background: 'var(--brand-primary)', 
-            padding: '1.25rem 2.5rem', 
-            borderRadius: '24px', 
-            marginBottom: '1rem',
-            boxShadow: '0 10px 25px rgba(39, 47, 92, 0.3)',
+            padding: '1.25rem', 
+            borderRadius: '20px', 
+            marginBottom: '1.25rem',
+            boxShadow: '0 12px 24px rgba(0, 0, 80, 0.25)',
             display: 'flex',
             alignItems: 'center',
-            gap: '12px'
+            justifyContent: 'center',
+            width: '72px',
+            height: '72px'
           }}>
-            <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M50 5L90 25V75L50 95L10 75V25L50 5Z" stroke="white" strokeWidth="4" strokeLinejoin="round"/>
+            <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M50 5L90 25V75L50 95L10 75V25L50 5Z" stroke="white" strokeWidth="6" strokeLinejoin="round"/>
               <path d="M50 5L90 75L10 75L50 5Z" fill="white" fillOpacity="0.2"/>
               <path d="M50 95L90 25L10 25L50 95Z" fill="white" fillOpacity="0.1"/>
               <path d="M50 5V95" stroke="white" strokeWidth="2" strokeDasharray="4 4"/>
             </svg>
-            <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'white', letterSpacing: '1px' }}>LEVE ERP</span>
           </div>
-          <div className="login-brand-sub" style={{ fontWeight: 700, color: 'var(--brand-primary)', letterSpacing: '2px', opacity: 0.8 }}>SISTEMA CORPORATIVO</div>
+          <div style={{ 
+            fontSize: '1.5rem', 
+            fontWeight: 900, 
+            color: 'var(--brand-primary)', 
+            letterSpacing: '-0.02em',
+            fontFamily: 'Outfit, sans-serif'
+          }}>
+            LEVE <span style={{ color: 'var(--brand-secondary)' }}>ERP</span>
+          </div>
+          <div style={{ 
+            fontWeight: 700, 
+            color: 'var(--gray-400)', 
+            fontSize: '0.65rem',
+            letterSpacing: '0.15em', 
+            textTransform: 'uppercase',
+            marginTop: '0.25rem'
+          }}>
+            Sistema de Gestão Integrada
+          </div>
         </div>
 
-        <div className="login-title">Acesso ao sistema</div>
-        <div className="login-subtitle">
-          Entre com suas credenciais para continuar
-        </div>
+        <h1 className="login-title">Seja bem-vindo</h1>
+        <p className="login-subtitle">
+          Entre com seu e-mail corporativo para acessar
+        </p>
 
         {error && (
-          <div className="login-error" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <AlertCircle size={16} style={{ flexShrink: 0 }} />
-            {error}
+          <div className="login-error">
+            <AlertCircle size={18} />
+            <span>{error}</span>
           </div>
         )}
 
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
           <div className="form-group">
             <label className="form-label">E-mail corporativo</label>
             <div style={{ position: 'relative' }}>
               <Mail
-                size={16}
+                size={18}
                 style={{
-                  position: 'absolute', left: '0.75rem',
+                  position: 'absolute', left: '1rem',
                   top: '50%', transform: 'translateY(-50%)',
                   color: 'var(--gray-400)'
                 }}
@@ -86,7 +105,7 @@ export default function LoginPage() {
               <input
                 type="email"
                 className="form-control"
-                style={{ paddingLeft: '2.25rem' }}
+                style={{ paddingLeft: '2.75rem' }}
                 placeholder="seu.email@levemobilidade.com.br"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -96,13 +115,15 @@ export default function LoginPage() {
             </div>
           </div>
 
-          <div className="form-group">
-            <label className="form-label">Senha</label>
+          <div className="form-group" style={{ marginBottom: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+              <label className="form-label" style={{ marginBottom: 0 }}>Senha</label>
+            </div>
             <div style={{ position: 'relative' }}>
               <Lock
-                size={16}
+                size={18}
                 style={{
-                  position: 'absolute', left: '0.75rem',
+                  position: 'absolute', left: '1rem',
                   top: '50%', transform: 'translateY(-50%)',
                   color: 'var(--gray-400)'
                 }}
@@ -110,7 +131,7 @@ export default function LoginPage() {
               <input
                 type={showPassword ? 'text' : 'password'}
                 className="form-control"
-                style={{ paddingLeft: '2.25rem', paddingRight: '2.5rem' }}
+                style={{ paddingLeft: '2.75rem', paddingRight: '3rem' }}
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -124,18 +145,19 @@ export default function LoginPage() {
                   top: '50%', transform: 'translateY(-50%)',
                   background: 'none', border: 'none',
                   color: 'var(--gray-400)', cursor: 'pointer',
-                  display: 'flex', alignItems: 'center'
+                  display: 'flex', alignItems: 'center',
+                  padding: '8px'
                 }}
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
               </button>
             </div>
           </div>
 
           <button
             type="submit"
-            className="btn btn-primary"
-            style={{ marginTop: '0.5rem', padding: '0.75rem', fontSize: '0.9375rem', justifyContent: 'center' }}
+            className="btn btn-primary btn-lg w-full"
+            style={{ marginTop: '1rem' }}
             disabled={loading}
           >
             {loading ? (
@@ -143,17 +165,17 @@ export default function LoginPage() {
                 <span className="loading-spinner" />
                 Autenticando...
               </>
-            ) : 'Entrar'}
+            ) : 'Entrar no Sistema'}
           </button>
         </form>
 
         <div style={{
-          marginTop: '1.5rem', paddingTop: '1.5rem',
+          marginTop: '2.5rem', paddingTop: '1.5rem',
           borderTop: '1px solid var(--gray-100)',
           textAlign: 'center'
         }}>
-          <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)' }}>
-            Leve Mobilidade © {new Date().getFullYear()} — Uso interno restrito
+          <p style={{ fontSize: '0.75rem', color: 'var(--gray-400)', fontWeight: 500 }}>
+            Leve Mobilidade © {new Date().getFullYear()} — Uso restrito e monitorado
           </p>
         </div>
       </div>
