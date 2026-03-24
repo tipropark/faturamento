@@ -134,20 +134,20 @@ export default function AuditoriaPage() {
     <div style={{ maxWidth: '1400px' }}>
       <div className="page-header">
         <div>
-          <h1 className="page-title">Central de Auditoria e Governança</h1>
+          <h1 className="page-title">Governança e Auditoria</h1>
           <p className="page-subtitle">Rastreabilidade completa de ações administrativas e operacionais.</p>
         </div>
-        <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-secondary" onClick={() => carregarDados()}><RefreshCw size={16} /></button>
-          <button className="btn btn-outline" onClick={handleExport}><Download size={16} /> Exportar Logs</button>
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={() => carregarDados()} title="Atualizar"><RefreshCw size={16} /></button>
+          <button className="btn btn-primary btn-sm" onClick={handleExport}><Download size={16} /> Exportar Logs</button>
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: '1.5rem' }}>
-        <button className={`tab-btn ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><Layout size={18} /> Panorama</button>
-        <button className={`tab-btn ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}><History size={18} /> Matriz de Logs</button>
-        <button className={`tab-btn ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}><Fingerprint size={18} /> Trilha por Usuário</button>
-        <button className={`tab-btn ${activeTab === 'timeline' ? 'active' : ''}`} onClick={() => setActiveTab('timeline')}><Clock size={18} /> Timeline por Registro</button>
+      <div className="tabs-container" style={{ marginBottom: '2rem' }}>
+        <button className={`tab-item ${activeTab === 'dashboard' ? 'active' : ''}`} onClick={() => setActiveTab('dashboard')}><Layout size={18} /> Panorama</button>
+        <button className={`tab-item ${activeTab === 'logs' ? 'active' : ''}`} onClick={() => setActiveTab('logs')}><History size={18} /> Matriz de Logs</button>
+        <button className={`tab-item ${activeTab === 'users' ? 'active' : ''}`} onClick={() => setActiveTab('users')}><Fingerprint size={18} /> Usuários</button>
+        <button className={`tab-item ${activeTab === 'timeline' ? 'active' : ''}`} onClick={() => setActiveTab('timeline')}><Clock size={18} /> Timeline</button>
       </div>
 
       {activeTab === 'dashboard' && stats && (

@@ -88,15 +88,21 @@ export default function DetalheTarifarioPage() {
   if (!solicitacao) return <div>Solicitação não encontrada.</div>;
 
   return (
-    <div style={{ maxWidth: '1100px' }}>
-      <div className="page-header" style={{ marginBottom: '1.5rem' }}>
+    <div style={{ maxWidth: '1200px' }}>
+      <div className="page-header" style={{ marginBottom: '2.5rem' }}>
         <div>
-          <button className="btn btn-ghost btn-sm" onClick={() => router.push('/tarifarios')} style={{ marginBottom: '0.5rem' }}>
-            <ArrowLeft size={14} /> Voltar para lista
+          <button className="btn btn-ghost btn-xs" onClick={() => router.push('/tarifarios')} style={{ marginBottom: '1rem', gap: '4px' }}>
+            <ArrowLeft size={14} /> VOLTAR PARA LISTAGEM
           </button>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-            <h1 className="page-title">Solicitação {solicitacao.id.substring(0, 8).toUpperCase()}</h1>
-            <span className={`badge badge-status-${solicitacao.status}`} style={{ fontSize: '0.875rem', padding: '0.4rem 0.8rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+            <h1 className="page-title" style={{ fontSize: '1.75rem', fontWeight: 900 }}>Solicitação {solicitacao.id.substring(0, 8).toUpperCase()}</h1>
+            <span className={`badge badge-status-${solicitacao.status}`} style={{ 
+              fontSize: '0.75rem', 
+              padding: '0.5rem 1rem', 
+              borderRadius: '20px',
+              fontWeight: 800,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+            }}>
               {STATUS_TARIFARIO_LABELS[solicitacao.status]}
             </span>
           </div>
@@ -222,17 +228,17 @@ export default function DetalheTarifarioPage() {
                     className="btn btn-primary" 
                     onClick={() => handleAction('approve', { parecer })}
                     disabled={submitting}
-                    style={{ flex: 1 }}
+                    style={{ flex: 1, height: '44px', gap: '8px' }}
                   >
-                    <CheckCircle2 size={18} /> Aprovar Solicitação
+                    <CheckCircle2 size={18} /> APROVAR SOLICITAÇÃO
                   </button>
                   <button 
                     className="btn btn-secondary" 
                     onClick={() => handleAction('reject', { parecer })}
                     disabled={submitting}
-                    style={{ background: 'var(--danger-bg)', color: 'var(--danger)', border: 'none' }}
+                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--danger)', height: '44px', border: '1px solid rgba(239, 68, 68, 0.2)' }}
                   >
-                    <XCircle size={18} /> Reprovar
+                    <XCircle size={18} /> REPROVAR
                   </button>
                 </div>
               </div>
@@ -270,11 +276,11 @@ export default function DetalheTarifarioPage() {
                 {solicitacao.status === 'aprovado' ? (
                   <button 
                     className="btn btn-primary" 
-                    style={{ width: '100%', background: 'var(--info)', border: 'none' }}
+                    style={{ width: '100%', gap: '8px' }}
                     onClick={() => handleAction('start_execution')}
                     disabled={submitting}
                   >
-                    <RefreshCw size={18} /> Marcar como "Em Execução"
+                    <RefreshCw size={18} className={submitting ? 'rotate-animation' : ''} /> MARCAR EM EXECUÇÃO
                   </button>
                 ) : (
                   <>
@@ -287,11 +293,11 @@ export default function DetalheTarifarioPage() {
                     />
                     <button 
                       className="btn btn-primary" 
-                      style={{ width: '100%', background: 'var(--success)', border: 'none' }}
+                      style={{ width: '100%', background: 'var(--success-dark)', border: 'none', gap: '8px' }}
                       onClick={() => handleAction('complete', { obs_tecnica: obsTecnica })}
                       disabled={submitting}
                     >
-                      <CheckCircle2 size={18} /> Marcar como "Concluído"
+                      <CheckCircle2 size={18} /> CONCLUIR IMPLEMENTAÇÃO
                     </button>
                   </>
                 )}

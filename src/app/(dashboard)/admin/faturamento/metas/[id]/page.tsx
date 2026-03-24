@@ -75,14 +75,15 @@ const EvolutionLineChart = ({ data }: { data: any[] }) => {
   );
 };
 
-export default function MetaDetailPage({ params }: { params: { id: string } }) {
+export default function MetaDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = React.use(params);
   const [meta, setMeta] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const fetchMeta = useCallback(async () => {
     try {
-      const res = await fetch(`/api/metas-faturamento/${params.id}`);
+      const res = await fetch(`/api/metas-faturamento/${id}`);
       if (res.ok) {
         setMeta(await res.json());
       }
@@ -91,7 +92,7 @@ export default function MetaDetailPage({ params }: { params: { id: string } }) {
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     fetchMeta();

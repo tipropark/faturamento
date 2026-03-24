@@ -64,40 +64,51 @@ export default function TarifariosPage() {
 
   return (
     <>
-      <header className="page-header">
+      <header className="page-header" style={{ marginBottom: '2rem' }}>
         <div>
           <h1 className="page-title">Tarifários e Convênios</h1>
           <p className="page-subtitle">Gestão de solicitações de alteração de preços e contratos operacionais</p>
         </div>
         <div className="page-actions">
-          <button className="btn btn-primary" onClick={() => router.push('/tarifarios/novo')}>
-            <Plus size={18} /> Nova Solicitação
+          <button className="btn btn-primary" onClick={() => router.push('/tarifarios/novo')} style={{ borderRadius: '16px', gap: '8px' }}>
+            <Plus size={18} /> NOVA SOLICITAÇÃO
           </button>
         </div>
       </header>
 
       {/* Indicadores Premium */}
-      <div className="stats-grid" style={{ marginBottom: '2rem' }}>
+      <div className="stats-grid" style={{ marginBottom: '2.5rem' }}>
         {[
-          { label: 'Pendentes Aprovação', value: stats.pendente, icon: Clock, color: 'var(--warning)' },
-          { label: 'Aguardando Execução', value: stats.aprovado, icon: AlertCircle, color: '#8B5CF6' },
-          { label: 'Em Execução', value: stats.em_execucao, icon: RefreshCw, color: 'var(--brand-accent)' },
-          { label: 'Concluídas no Mês', value: stats.concluido_mes, icon: CheckCircle2, color: 'var(--success)' },
+          { label: 'Pendentes Aprovação', value: stats.pendente, icon: Clock, color: 'var(--warning)', footer: 'Urgência Média' },
+          { label: 'Aguardando Execução', value: stats.aprovado, icon: AlertCircle, color: '#8B5CF6', footer: 'Próxima Etapa' },
+          { label: 'Em Execução', value: stats.em_execucao, icon: RefreshCw, color: 'var(--brand-accent)', footer: 'Sincronizando' },
+          { label: 'Concluídas no Mês', value: stats.concluido_mes, icon: CheckCircle2, color: 'var(--success)', footer: 'Performance Mensal' },
         ].map((stat, i) => (
-          <div key={i} className="stat-card">
-            <div className="flex flex-between mb-4">
-               <div style={{ color: stat.color, background: `${stat.color}10`, padding: '0.625rem', borderRadius: '12px' }}>
+          <div key={i} className="stat-card" style={{ borderLeft: `4px solid ${stat.color}`, background: 'var(--bg-card)', borderRadius: '24px' }}>
+            <div className="flex flex-between mb-2">
+               <div style={{ color: stat.color, background: `${stat.color}15`, padding: '0.625rem', borderRadius: '12px' }}>
                  <stat.icon size={22} />
                </div>
-               <span className="stat-value">{stat.value}</span>
+               <span className="stat-value" style={{ fontSize: '1.75rem' }}>{stat.value}</span>
             </div>
-            <div className="stat-label">{stat.label}</div>
+            <div className="stat-label" style={{ fontWeight: 800, marginBottom: '0.5rem' }}>{stat.label}</div>
+            <div className="stat-footer" style={{ marginTop: 'auto', fontSize: '0.6rem', fontWeight: 800, opacity: 0.5, textTransform: 'uppercase' }}>
+               {stat.footer}
+            </div>
           </div>
         ))}
       </div>
 
       {/* Filtros Padronizados */}
-      <section className="filters-card">
+      <section className="card shadow-sm" style={{ 
+        padding: '1.5rem', 
+        marginBottom: '2.5rem', 
+        borderRadius: '24px',
+        border: '1px solid var(--border-color)',
+        background: 'rgba(255, 255, 255, 0.02)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
+      }}>
         <div className="filters-grid" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))' }}>
           <div className="form-group mb-0">
              <label className="form-label">Status</label>
@@ -133,12 +144,12 @@ export default function TarifariosPage() {
 
           <div className="flex gap-2">
              {(filtros.status || filtros.operacao_id || filtros.tipo || filtros.data_inicio) && (
-               <button className="btn btn-ghost btn-sm" onClick={() => setFiltros({ status: '', operacao_id: '', tipo: '', solicitante_id: '', data_inicio: '', data_fim: '' })}>
-                 Limpar
+               <button className="btn btn-ghost btn-xs" onClick={() => setFiltros({ status: '', operacao_id: '', tipo: '', solicitante_id: '', data_inicio: '', data_fim: '' })}>
+                 LIMPAR
                </button>
              )}
-             <button className="btn btn-secondary btn-sm" onClick={carregar}>
-                <RefreshCw size={14} className={loading ? 'rotate-animation' : ''} />
+             <button className="btn btn-primary btn-xs" onClick={carregar} style={{ gap: '4px', borderRadius: '10px' }}>
+                <RefreshCw size={14} className={loading ? 'rotate-animation' : ''} /> ATUALIZAR
              </button>
           </div>
         </div>
@@ -197,9 +208,9 @@ export default function TarifariosPage() {
                       </span>
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      <button className="btn btn-secondary btn-sm" onClick={(e) => { e.stopPropagation(); router.push(`/tarifarios/${s.id}`); }}>
-                        <Eye size={14} /> Detalhes
-                      </button>
+                       <button className="btn btn-primary btn-xs" onClick={(e) => { e.stopPropagation(); router.push(`/tarifarios/${s.id}`); }} style={{ gap: '4px', borderRadius: '10px' }}>
+                         <Eye size={14} /> DETALHES
+                       </button>
                     </td>
                   </tr>
                 ))

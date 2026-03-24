@@ -284,8 +284,8 @@ export default function SinistroDetalhePage({ params }: { params: Promise<{ id: 
               </span>
             )}
 
-            <button className="btn btn-ghost btn-sm" onClick={() => router.push('/sinistros/relatorios')} style={{ marginLeft: 'auto' }}>
-              <History size={14} /> Ver Relatórios
+            <button className="btn btn-ghost btn-xs" onClick={() => router.push('/sinistros/relatorios')} style={{ marginLeft: 'auto', gap: '4px' }}>
+              <History size={14} /> Relatórios Estáticos
             </button>
           </div>
           <p className="page-subtitle">
@@ -316,12 +316,12 @@ export default function SinistroDetalhePage({ params }: { params: Promise<{ id: 
           </select>
           {['administrador', 'analista_sinistro'].includes(perfilUsuario) && (
             editando ? (
-              <button className="btn btn-primary" onClick={salvarEdicao} disabled={salvando}>
-                <Save size={14} /> Salvar Alterações
+              <button className="btn btn-primary" onClick={salvarEdicao} disabled={salvando} style={{ gap: '8px' }}>
+                <Save size={14} /> SALVAR ALTERAÇÕES
               </button>
             ) : (
-              <button className="btn btn-outline" onClick={() => setEditando(true)}>
-                <Edit2 size={14} /> Editar Sinistro
+              <button className="btn btn-outline" onClick={() => setEditando(true)} style={{ gap: '8px' }}>
+                <Edit2 size={14} /> EDITAR SINISTRO
               </button>
             )
           )}
@@ -329,19 +329,46 @@ export default function SinistroDetalhePage({ params }: { params: Promise<{ id: 
       </div>
 
       {/* Tabs */}
-      <div className="tabs">
+      {/* LiquidGlass Tabs Navigation */}
+      <div style={{ 
+        background: 'rgba(255, 255, 255, 0.03)', 
+        backdropFilter: 'blur(20px)',
+        padding: '0.4rem', 
+        borderRadius: '20px', 
+        display: 'inline-flex', 
+        gap: '0.25rem', 
+        marginBottom: '2rem',
+        border: '1px solid var(--border-color)',
+        boxShadow: 'inset 0 0 10px rgba(255,255,255,0.02)'
+      }}>
         {TABS.map(t => {
           const Icon = t.icon;
           const isActive = tab === t.id;
           return (
             <button 
               key={t.id} 
-              className={`tab-btn ${isActive ? 'active' : ''}`} 
+              className={`btn ${isActive ? 'btn-primary' : 'btn-ghost'}`}
+              style={{ 
+                borderRadius: '16px', 
+                fontSize: '0.75rem', 
+                padding: '0.6rem 1.2rem',
+                minWidth: '100px',
+                gap: '8px',
+                border: isActive ? 'none' : 'transparent',
+                boxShadow: isActive ? 'var(--shadow-md)' : 'none'
+              }} 
               onClick={() => setTab(t.id)}
             >
-              <Icon size={18} /> {t.label}
-              {t.id === 'anexos' && anexos.length > 0 && (
-                <span className={`badge ${isActive ? 'badge-purple' : 'badge-gray'}`} style={{ fontSize: '0.65rem', padding: '0.1rem 0.5rem', marginLeft: '0.25rem' }}>
+              <Icon size={16} /> {t.label}
+              {t.id === 'documentos' && anexos.length > 0 && (
+                <span style={{ 
+                  background: isActive ? 'rgba(255,255,255,0.2)' : 'var(--gray-200)', 
+                  color: isActive ? 'white' : 'var(--gray-600)',
+                  fontSize: '0.6rem', 
+                  padding: '1px 6px', 
+                  borderRadius: '10px',
+                  fontWeight: 800
+                }}>
                   {anexos.length}
                 </span>
               )}
@@ -605,8 +632,8 @@ export default function SinistroDetalhePage({ params }: { params: Promise<{ id: 
               </div>
             </div>
             <div style={{ marginTop: '1.25rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary" onClick={salvarTratativa} disabled={salvando}>
-                {salvando ? <><span className="loading-spinner" />Salvando...</> : 'Salvar Tratativa'}
+              <button className="btn btn-primary" onClick={salvarTratativa} disabled={salvando} style={{ height: '44px', padding: '0 2rem' }}>
+                {salvando ? 'SALVANDO...' : 'SALVAR TRATATIVA'}
               </button>
             </div>
           </div>
@@ -660,8 +687,8 @@ export default function SinistroDetalhePage({ params }: { params: Promise<{ id: 
               </div>
             </div>
             <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary" onClick={salvarFinanceiro} disabled={salvando}>
-                {salvando ? <><span className="loading-spinner" />Salvando...</> : 'Salvar Dados Financeiros'}
+              <button className="btn btn-primary" onClick={salvarFinanceiro} disabled={salvando} style={{ height: '44px', padding: '0 2rem' }}>
+                {salvando ? 'SALVANDO...' : 'SALVAR DADOS FINANCEIROS'}
               </button>
             </div>
           </div>

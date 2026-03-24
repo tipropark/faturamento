@@ -145,7 +145,7 @@ export default async function DashboardPage() {
       </section>
 
       {/* Key Stats Grid */}
-      <div className="stats-grid" style={{ marginBottom: '2.5rem' }}>
+      <div className="stats-grid">
         {[
           { label: 'Total de Sinistros', value: totalSinistros, icon: AlertTriangle, color: 'var(--brand-accent)' },
           { label: 'Sinistros Abertos', value: statusCount('aberto'), icon: Clock, color: 'var(--warning)' },
@@ -154,13 +154,13 @@ export default async function DashboardPage() {
           { label: 'Usuários Ativos', value: totalUsuarios, icon: Users, color: 'var(--brand-primary)' },
         ].map((stat, i) => (
           <div key={i} className="stat-card">
-            <div className="flex flex-between mb-4">
-               <div style={{ color: stat.color, background: `${stat.color}10`, padding: '0.625rem', borderRadius: '12px' }}>
-                 <stat.icon size={22} />
-               </div>
-               <span className="stat-value">{stat.value}</span>
+            <div className="stat-icon-wrapper" style={{ color: stat.color, background: `${stat.color}10` }}>
+              <stat.icon size={22} />
             </div>
-            <div className="stat-label">{stat.label}</div>
+            <div>
+              <div className="stat-label">{stat.label}</div>
+              <div className="stat-value">{stat.value}</div>
+            </div>
           </div>
         ))}
       </div>

@@ -95,6 +95,27 @@ export function maskSensitiveData(data: any, keys: string[] = ['password', 'secr
 }
 
 /**
+ * Alias compactado para logAudit (para compatibilidade com chamadas legado em snake_case).
+ */
+export async function logAudit(params: {
+  usuario_id: string;
+  acao: string;
+  descricao: string;
+  tabela?: string;
+  registro_id?: string;
+  modulo?: string;
+}) {
+  return recordAuditLog(null, {
+    usuarioId: params.usuario_id,
+    acao: params.acao,
+    descricao: params.descricao,
+    entidade: params.tabela,
+    registroId: params.registro_id,
+    modulo: params.modulo || 'sistema'
+  });
+}
+
+/**
  * Middleware/Wrapper para API Routes que automatiza verificações e logs básicos.
  */
 export function withAudit(handler: (req: NextRequest, session: any, context: any) => Promise<NextResponse>) {

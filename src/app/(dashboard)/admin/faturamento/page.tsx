@@ -9,6 +9,9 @@ import {
   CheckCircle2, AlertCircle, AlertTriangle, Clock, Wifi, WifiOff, DollarSign, PenLine, 
   ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2
 } from 'lucide-react';
+import useSWR from 'swr';
+import { fetcher } from '@/lib/fetcher';
+import { VirtualTicketsTable } from '@/components/faturamento/VirtualTicketsTable';
 
 const ESTRUTURA_FATURAMENTO = [
   {
@@ -217,16 +220,24 @@ const SyncStatusBadge = ({ lastSync, lastMove }: { lastSync: Date | null, lastMo
 export default function FaturamentoPage() {
   const [view, setView] = useState<'dashboard' | 'detalhe'>('dashboard');
   const [dashboardPeriod, setDashboardPeriod] = useState<'today' | 'yesterday' | '7d' | '30d' | 'month'>('today');
+
+  // SWR for automatic caching and revalidation
+  const { data, error, mutate, isValidating: swrLoading } = useSWR('/api/faturamento?mode=all_data', fetcher, {
+    revalidateOnFocus: false,
+    refreshInterval: 60000, // Revalidate every minute
+  });
+
+  const operations = data?.operacoes || [];
+  const allResumos = data?.resumos || [];
+  const allMovimentos = data?.movimentos || [];
+  const allAjustes = data?.ajustes || [];
   
-  const [loading, setLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
-  
-  const [operations, setOperations] = useState<any[]>([]);
-  const [allResumos, setAllResumos] = useState<any[]>([]);
-  const [allMovimentos, setAllMovimentos] = useState<any[]>([]);
-  const [allAjustes, setAllAjustes] = useState<any[]>([]);
-  
+  useEffect(() => { if (data) setLastUpdated(new Date()); }, [data]);
+
+  const loading = !data && !error;
+  const isRefreshing = swrLoading;
+
   const [selectedOp, setSelectedOp] = useState<any>(null);
   const [dailySummaries, setDailySummaries] = useState<any[]>([]);
   const [activeDate, setActiveDate] = useState<string | null>(null);
@@ -242,32 +253,11 @@ export default function FaturamentoPage() {
   const [ajusteSinal, setAjusteSinal] = useState(1);
   const [isSubmittingAjuste, setIsSubmittingAjuste] = useState(false);
 
-  const fetchDadosBase = useCallback(async (isSilent = false) => {
-    if (!isSilent) setLoading(true);
-    setIsRefreshing(true);
-    try {
-      const res = await fetch('/api/faturamento?mode=all_data');
-      if (res.ok) {
-        const { operacoes, resumos, movimentos, ajustes } = await res.json();
-        setOperations(operacoes || []);
-        setAllResumos(resumos || []);
-        setAllMovimentos(movimentos || []);
-        setAllAjustes(ajustes || []);
-        setLastUpdated(new Date());
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  const fetchDadosBase = (isSilent = false) => {
+    mutate(); // Trigger SWR revalidation
+  };
 
-  useEffect(() => {
-    fetchDadosBase();
-    const interv = setInterval(() => fetchDadosBase(true), 60000); 
-    return () => clearInterval(interv);
-  }, [fetchDadosBase]);
+  // Removido manual useEffect do interval pois o SWR já tem refreshInterval
 
   // --- LÓGICA DE AGREGAÇÃO E FILTRAGEM UNIFICADA ---
   
@@ -304,8 +294,10 @@ export default function FaturamentoPage() {
   // Função central para filtrar resumos por período (RESPEITA DATA LOCAL)
   const getFilteredSummaries = useCallback((resumos: any[], period: string) => {
     const now = new Date();
+    // Normalizar 'now' para o início do dia local para cálculos de períodos relativos
+    const nowMidnight = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
-    // Helper para gerar YYYY-MM-DD local
+    // Helper para gerar YYYY-MM-DD local (garante paridade absoluta com data_referencia do banco)
     const getDS = (d: Date) => {
       const y = d.getFullYear();
       const m = String(d.getMonth() + 1).padStart(2, '0');
@@ -315,27 +307,33 @@ export default function FaturamentoPage() {
 
     const todayStr = getDS(now);
     
-    const yesterday = new Date();
-    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterday = new Date(nowMidnight);
+    yesterday.setDate(nowMidnight.getDate() - 1);
     const yestStr = getDS(yesterday);
 
     return resumos.filter((r: any) => {
       const dateRef = r.data_referencia; // YYYY-MM-DD
       if (!dateRef) return false;
       
+      // Filtros diretos por string (100% seguros)
       if (period === 'today') return dateRef === todayStr;
       if (period === 'yesterday') return dateRef === yestStr;
       
+      // Filtros calculados por intervalo
       const [year, month, day] = dateRef.split('-').map(Number);
-      const rDate = new Date(year, month - 1, day, 12, 0, 0);
+      // Criamos rDate também no início do dia local
+      const rDateMidnight = new Date(year, month - 1, day);
 
       if (period === 'month') {
         return year === now.getFullYear() && (month - 1) === now.getMonth();
       }
 
-      const diffMs = now.getTime() - rDate.getTime();
-      const diffDays = Math.floor(diffMs / 86400000);
+      // Diferença em dias (inteiro) entre hoje e o registro
+      // 0 = Hoje, 1 = Ontem, etc.
+      const diffMs = nowMidnight.getTime() - rDateMidnight.getTime();
+      const diffDays = Math.round(diffMs / 86400000);
 
+      // Agora inclusivo (hoje está dentro do período de 7 e 30 dias)
       if (period === '7d') return diffDays >= 0 && diffDays < 7;
       if (period === '30d') return diffDays >= 0 && diffDays < 30;
       
@@ -348,9 +346,6 @@ export default function FaturamentoPage() {
    * Garante que Resumo Inicial e Visão Detalhada usem EXATAMENTE a mesma memória de cálculo.
    */
   const getEnrichedFilteredSummaries = useCallback((resumos: any[], period: string, opId?: string) => {
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-    
     // 1. Filtrar operações que vamos processar
     const opsToProcess = opId ? operations.filter((o: any) => o.id === opId) : operations;
     
@@ -361,27 +356,52 @@ export default function FaturamentoPage() {
       resMap[r.operacao_id][r.data_referencia] = r;
     });
 
-    // 3. Gerar resumos unificados para os últimos 3 dias BASEADOS EM MOVIMENTOS REAIS (Live Data)
-    // Isso garante que se o usuário lançou hoje, aparece hoje, independente da data_saida.
+    // 3. Gerar lista unificada
     const allUnified: any[] = [];
-    
     opsToProcess.forEach(op => {
-      Object.keys(resMap[op.id] || {}).forEach(date => {
-         allUnified.push(resMap[op.id][date]);
+      const opResEntries = resMap[op.id] || {};
+      Object.keys(opResEntries).forEach(date => {
+         allUnified.push(opResEntries[date]);
       });
     });
 
-    // 4. Aplicar filtro de período final aos resumos unificados
+    // 4. Aplicar filtro de período unificado
     return getFilteredSummaries(allUnified, period);
-  }, [operations, allResumos, getFilteredSummaries]);
+  }, [operations, getFilteredSummaries]);
 
   // --- DERIVAÇÕES DE ESTADO ---
 
-  const dashboardStats = (() => {
+  const dashboardStats = useMemo(() => {
     const filteredResumos = getEnrichedFilteredSummaries(allResumos, dashboardPeriod);
     const stats = calculateStats(filteredResumos);
     return { ...stats, avgTicket: stats.count > 0 ? stats.revenue / stats.count : 0 };
-  })();
+  }, [allResumos, dashboardPeriod, getEnrichedFilteredSummaries, calculateStats]);
+
+  // Memoize performance per operation to avoid heavy filtering in render loop
+  const allOperationStats = useMemo(() => {
+    return operations.map(op => {
+      const opResumos = allResumos.filter((r: any) => r.operacao_id === op.id);
+      const periodResumos = getEnrichedFilteredSummaries(opResumos, dashboardPeriod, op.id);
+      const opStats = calculateStats(periodResumos);
+      
+      const last7Days = Array.from({length: 7}, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i));
+        const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        const r = opResumos.find((res: any) => res.data_referencia === ds);
+        return (Number(r?.total_receita_ajustada) || 0) + 
+               (Number(r?.total_avulso_ajustado) || 0) + 
+               (Number(r?.total_mensalista_ajustado) || 0);
+      });
+
+      return {
+        opId: op.id,
+        net: opStats.net,
+        revenue: opStats.revenue,
+        count: periodResumos.reduce((acc: number, r: any) => acc + r.quantidade_movimentos, 0),
+        last7Days
+      };
+    });
+  }, [operations, allResumos, dashboardPeriod, getEnrichedFilteredSummaries, calculateStats]);
 
   const abrirDetalheOperacao = (op: any) => {
     // Para o detalhe, recalcular os resumos da operação usando o novo pipeline unificado
@@ -458,8 +478,8 @@ export default function FaturamentoPage() {
         }
       };
       fetchDetails();
-    } else if (view === 'dashboard') {
-      setMovimentosDetalhados([]); // Limpa ao voltar para o dashboard
+    } else {
+       setMovimentosDetalhados([]); // Limpa ao voltar para o dashboard
     }
   }, [view, selectedOp, activeDate]);
 
@@ -533,7 +553,7 @@ export default function FaturamentoPage() {
         // Atualiza a visualização local para remover o item sem ter que fechar o detalhe
         setDailySummaries(prev => prev.map((s: any) => ({
           ...s,
-          ajustes: s.ajustes.filter((a: any) => a.id !== ajusteId)
+          ajustes: (s.ajustes || []).filter((a: any) => a.id !== ajusteId)
         })));
       } else {
         const err = await res.json();
@@ -685,21 +705,8 @@ export default function FaturamentoPage() {
                   };
                   return getWeight(a.ultima_sincronizacao) - getWeight(b.ultima_sincronizacao);
                 }).map((op: any) => {
-                  const opResumos = allResumos.filter((r: any) => r.operacao_id === op.id);
-                  const periodResumos = getEnrichedFilteredSummaries(opResumos, dashboardPeriod, op.id);
-                  const opStats = calculateStats(periodResumos);
-
-                  const rev = opStats.revenue;
-                  const net = opStats.net;
-                  
-                  const last7Days = Array.from({length: 7}, (_, i) => {
-                    const d = new Date(); d.setDate(d.getDate() - (6 - i));
-                    const ds = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-                    const r = opResumos.find((res: any) => res.data_referencia === ds);
-                    return (Number(r?.total_receita_ajustada) || 0) + 
-                           (Number(r?.total_avulso_ajustado) || 0) + 
-                           (Number(r?.total_mensalista_ajustado) || 0);
-                  });
+                  const stats = allOperationStats.find(s => s.opId === op.id) || { net: 0, revenue: 0, count: 0, last7Days: [] };
+                  const { net, revenue, count, last7Days } = stats;
 
                   // Status do agente (última execução do script)
                   const lastSyncDate = op.ultima_sincronizacao ? new Date(op.ultima_sincronizacao) : null;
@@ -730,7 +737,7 @@ export default function FaturamentoPage() {
                              <span className="stat-value" style={{ color: net >= 0 ? 'var(--gray-900)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
                            </div>
                            <div className="text-right">
-                             <span className="badge badge-gray">{periodResumos.reduce((acc: number, r: any) => acc + r.quantidade_movimentos, 0)} Movs</span>
+                             <span className="badge badge-gray">{count} Movs</span>
                            </div>
                          </div>
                          <MiniLineChart data={last7Days} color={net >= 0 ? "var(--brand-primary)" : "var(--danger)"} />
@@ -773,28 +780,28 @@ export default function FaturamentoPage() {
                  const vol = tickets.length;
 
                  return (
-                   <div style={{ 
-                     display: 'grid', 
-                     gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                     gap: '1rem' 
-                   }}>
-                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Receita Total</span>
-                        <span className="text-2xl font-black text-gray-900">{formatarMoeda(totalRev)}</span>
-                     </div>
-                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Despesa Total</span>
-                        <span className="text-2xl font-black text-danger">{formatarMoeda(totalExp)}</span>
-                     </div>
-                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Resultado Líquido</span>
-                        <span className="text-2xl font-black" style={{ color: net >= 0 ? 'var(--success-dark)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
-                     </div>
-                     <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                        <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Volume Total</span>
-                        <span className="text-2xl font-black text-gray-900">{vol} <span className="text-sm font-bold opacity-40">Movs</span></span>
-                     </div>
-                   </div>
+                    <div style={{ 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                      gap: '1rem' 
+                    }}>
+                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Receita Total</span>
+                         <span className="text-2xl font-black text-gray-900">{formatarMoeda(totalRev)}</span>
+                      </div>
+                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Despesa Total</span>
+                         <span className="text-2xl font-black text-danger">{formatarMoeda(totalExp)}</span>
+                      </div>
+                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Resultado Líquido</span>
+                         <span className="text-2xl font-black" style={{ color: net >= 0 ? 'var(--success-dark)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
+                      </div>
+                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Volume Total</span>
+                         <span className="text-2xl font-black text-gray-900">{vol} <span className="text-sm font-bold opacity-40">Movs</span></span>
+                      </div>
+                    </div>
                  );
                })()}
             </section>
@@ -956,7 +963,7 @@ export default function FaturamentoPage() {
                             </div>
                          </div>
                        );
-                    })}
+                     })}
                   </div>
 
                   <div className="card" style={{ padding: 0 }}>
@@ -971,43 +978,12 @@ export default function FaturamentoPage() {
                          </div>
                        )}
                     </header>
-                    <div className="table-container" style={{ maxHeight: '600px', overflowY: 'auto' }}>
-                       <table className="table">
-                         <thead>
-                           <tr>
-                             <th>ID / Ticket</th>
-                             <th>Entrada / Saída</th>
-                             <th>Natureza</th>
-                             <th>F. Pagamento</th>
-                             <th className="text-right">Valor</th>
-                           </tr>
-                         </thead>
-                         <tbody>
-                           {tickets
-                             .filter((t: any) => !filterCategory || classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === filterCategory)
-                             .map((t: any, idx: number) => (
-                             <tr key={idx}>
-                               <td>
-                                 <span className="badge badge-gray" style={{ fontFamily: 'monospace' }}>
-                                   {t.ticket_id || t.ticket_label || 'vinc-sql'}
-                                 </span>
-                               </td>
-                               <td className="text-xs">
-                                 <div className="text-muted">{t.data_entrada ? new Date(t.data_entrada).toLocaleString('pt-BR') : '-'}</div>
-                                 <div className="font-bold text-gray-800">{t.data_saida ? new Date(t.data_saida).toLocaleString('pt-BR') : '-'}</div>
-                               </td>
-                               <td><span className="badge badge-primary">{t.tipo_movimento || 'N/A'}</span></td>
-                               <td><span className="text-xs font-bold text-uppercase">{t.forma_pagamento || 'Crédito/Débito'}</span></td>
-                               <td className="text-right font-bold text-gray-900">
-                                 {t.tipo_movimento === 'Despesa' ? '-' : ''}{formatarMoeda(Number(t.valor))}
-                               </td>
-                             </tr>
-                           ))}
-                           {tickets.length === 0 && (
-                             <tr><td colSpan={5} className="text-center py-8 text-muted italic">Sem movimentações carregadas.</td></tr>
-                           )}
-                         </tbody>
-                       </table>
+                    <div className="table-container" style={{ padding: '0.5rem' }}>
+                       <VirtualTicketsTable 
+                         tickets={tickets.filter((t: any) => !filterCategory || classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === filterCategory)}
+                         height={600}
+                         formatarMoeda={formatarMoeda}
+                       />
                     </div>
                   </div>
                </div>

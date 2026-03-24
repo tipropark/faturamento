@@ -55,18 +55,25 @@ export default function GerentesPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Gerentes de Operações</h1>
-          <p className="page-subtitle">{filtrados.length} gerente(s) cadastrado(s)</p>
+          <p className="page-subtitle">{filtrados.length} gerente(s) em atividade</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={carregar}>
-          <RefreshCw size={14} /> Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={carregar} title="Atualizar">
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="card">
         <div className="filters-bar">
-          <div className="filter-search">
-            <Search size={15} className="filter-search-icon" />
-            <input placeholder="Buscar gerente..." value={busca} onChange={e => setBusca(e.target.value)} />
+          <div className="filter-search" style={{ flex: 1 }}>
+            <Search size={14} />
+            <input 
+              className="form-control"
+              placeholder="Buscar gerente por nome ou email..." 
+              value={busca} 
+              onChange={e => setBusca(e.target.value)} 
+            />
           </div>
         </div>
 
@@ -116,7 +123,7 @@ export default function GerentesPage() {
                     }
                   </td>
                   <td>
-                    <button className="btn btn-secondary btn-sm" onClick={() => { setGerenteSelecionado(g); setShowDetalhe(true); }}>
+                    <button className="btn btn-secondary btn-xs" onClick={() => { setGerenteSelecionado(g); setShowDetalhe(true); }}>
                       Ver estrutura
                     </button>
                   </td>

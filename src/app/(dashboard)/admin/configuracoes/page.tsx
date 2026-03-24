@@ -140,7 +140,7 @@ export default function ConfiguracoesPage() {
             }}
           />
           <button 
-            className="btn btn-primary" 
+            className="btn btn-primary btn-icon" 
             onClick={() => handleUpdate(config)}
             disabled={savingId === config.id}
             title="Salvar no Banco de Dados"
@@ -175,19 +175,21 @@ export default function ConfiguracoesPage() {
           <h1 className="page-title">Configurações Gerais do Sistema</h1>
           <p className="page-subtitle">Gerencie credenciais de integração e parâmetros técnicos de forma segura.</p>
         </div>
-        <button className="btn btn-secondary" onClick={carregar}>
-          <RefreshCw size={16} /> Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={carregar} title="Atualizar">
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: '1.5rem' }}>
-        <button className={`tab-btn ${activeTab === 'geral' ? 'active' : ''}`} onClick={() => setActiveTab('geral')}>
+      <div className="tabs-container" style={{ marginBottom: '2rem' }}>
+        <button className={`tab-item ${activeTab === 'geral' ? 'active' : ''}`} onClick={() => setActiveTab('geral')}>
           <Settings size={18} /> Geral e Integrações
         </button>
-        <button className={`tab-btn ${activeTab === 'auditoria' ? 'active' : ''}`} onClick={() => setActiveTab('auditoria')}>
+        <button className={`tab-item ${activeTab === 'auditoria' ? 'active' : ''}`} onClick={() => setActiveTab('auditoria')}>
           <History size={18} /> Auditoria de Alterações
         </button>
-        <button className={`tab-btn ${activeTab === 'aparencia' ? 'active' : ''}`} onClick={() => setActiveTab('aparencia')}>
+        <button className={`tab-item ${activeTab === 'aparencia' ? 'active' : ''}`} onClick={() => setActiveTab('aparencia')}>
           <Palette size={18} /> Aparência
         </button>
       </div>
@@ -213,8 +215,8 @@ export default function ConfiguracoesPage() {
                   Estas credenciais são utilizadas para o upload de arquivos. Caso altere o <strong>CLIENT_ID</strong> ou <strong>SECRET</strong>, lembre-se de re-autorizar o <strong>REFRESH_TOKEN</strong> se necessário.
                 </p>
                 <button 
-                  className={`btn ${testing === 'google_drive' ? 'btn-ghost' : 'btn-outline'} btn-sm`} 
-                  style={{ marginTop: '0.75rem', width: '100%', gap: '0.5rem' }}
+                  className={`btn ${testing === 'google_drive' ? 'btn-ghost' : 'btn-secondary'} btn-sm btn-icon-right`} 
+                  style={{ marginTop: '0.75rem', width: '100%', justifyContent: 'center' }}
                   onClick={() => handleTestConnection('google_drive')}
                   disabled={testing !== null}
                 >
@@ -255,8 +257,8 @@ export default function ConfiguracoesPage() {
               </div>
 
               <button 
-                  className={`btn ${testing === 'supabase' ? 'btn-ghost' : 'btn-outline'} btn-sm`} 
-                  style={{ width: '100%', gap: '0.5rem' }}
+                  className={`btn ${testing === 'supabase' ? 'btn-ghost' : 'btn-secondary'} btn-sm btn-icon-right`} 
+                  style={{ width: '100%', justifyContent: 'center' }}
                   onClick={() => handleTestConnection('supabase')}
                   disabled={testing !== null}
                 >

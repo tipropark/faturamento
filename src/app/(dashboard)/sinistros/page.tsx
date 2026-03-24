@@ -4,7 +4,8 @@ import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   AlertTriangle, Plus, Search, Filter,
-  RefreshCw, Eye, ChevronRight, BarChart, CheckCircle
+  RefreshCw, Eye, ChevronRight, BarChart, CheckCircle,
+  Clock, FileText
 } from 'lucide-react';
 import {
   StatusSinistro, PrioridadeSinistro,
@@ -127,8 +128,8 @@ export default function SinistrosPage() {
                 <div className="text-danger font-bold" style={{ fontSize: '0.65rem' }}>Limite: {formatarData(s.data_limite_sla)}</div>
               </td>
               <td style={{ textAlign: 'right' }}>
-                 <button className="btn btn-secondary btn-sm" onClick={e => { e.stopPropagation(); router.push(`/sinistros/${s.id}`); }}>
-                   <Eye size={14} /> Detalhes
+                 <button className="btn btn-primary btn-xs" onClick={e => { e.stopPropagation(); router.push(`/sinistros/${s.id}`); }} style={{ gap: '4px', borderRadius: '12px' }}>
+                   <Eye size={14} /> DETALHES
                  </button>
               </td>
             </tr>
@@ -140,23 +141,54 @@ export default function SinistrosPage() {
 
   return (
     <>
-      <header className="page-header">
+      <header className="page-header" style={{ marginBottom: '2rem' }}>
         <div>
-          <h1 className="page-title">Sinistros</h1>
-          <p className="page-subtitle">Acompanhamento e gestão de ocorrências operacionais ({sinistros.length})</p>
+          <h1 className="page-title">Módulo de Sinistros</h1>
+          <p className="page-subtitle">Acompanhamento e gestão de ocorrências operacionais em tempo real ({sinistros.length})</p>
         </div>
-        <div className="page-actions">
-          <button className="btn btn-secondary" onClick={() => router.push('/sinistros/relatorios')}>
-            <BarChart size={18} /> Relatórios
+        <div className="page-actions" style={{ gap: '0.75rem' }}>
+          <button className="btn btn-secondary" onClick={() => router.push('/sinistros/relatorios')} style={{ gap: '8px' }}>
+            <BarChart size={18} /> RELATÓRIOS ESTÁTICOS
           </button>
-          <button className="btn btn-primary" onClick={() => router.push('/sinistros/novo')}>
-            <Plus size={18} /> Abrir Sinistro
+          <button className="btn btn-primary" onClick={() => router.push('/sinistros/novo')} style={{ borderRadius: '16px', gap: '8px' }}>
+            <Plus size={18} /> ABRIR SINISTRO
           </button>
         </div>
       </header>
 
+      {/* Strategic Summary (Benchmark: Metas) */}
+      <div className="stats-grid" style={{ marginBottom: '2.5rem' }}>
+        {[
+          { label: 'Total Registrado', value: sinistros.length, icon: AlertTriangle, color: 'var(--brand-accent)', footer: 'Base Histórica' },
+          { label: 'Sem Analista', value: sinistrosSemAnalista.length, icon: Clock, color: 'var(--danger)', footer: 'Urgente' },
+          { label: 'Em Andamento', value: sinistrosEmAndamento.length, icon: FileText, color: 'var(--info)', footer: 'Análise Ativa' },
+          { label: 'Encerrados', value: sinistrosEncerrados.length, icon: CheckCircle, color: 'var(--success)', footer: 'Ciclo Completo' },
+        ].map((stat, i) => (
+          <div key={i} className="stat-card" style={{ borderLeft: `4px solid ${stat.color}`, background: 'var(--bg-card)', borderRadius: '24px' }}>
+            <div className="stat-icon-wrapper" style={{ color: stat.color, background: `${stat.color}15` }}>
+              <stat.icon size={22} />
+            </div>
+            <div>
+              <div className="stat-label">{stat.label}</div>
+              <div className="stat-value" style={{ fontSize: '1.75rem' }}>{stat.value}</div>
+            </div>
+            <div className="stat-footer" style={{ marginTop: 'auto', fontSize: '0.65rem', fontWeight: 700, opacity: 0.6, textTransform: 'uppercase' }}>
+               {stat.footer}
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Área de Filtros Premium */}
-      <section className="filters-card">
+      <section className="card shadow-sm" style={{ 
+        padding: '1.5rem', 
+        marginBottom: '2.5rem', 
+        borderRadius: '24px',
+        border: '1px solid var(--border-color)',
+        background: 'rgba(255, 255, 255, 0.02)',
+        backdropFilter: 'blur(20px)',
+        boxShadow: 'inset 0 0 0 1px rgba(255,255,255,0.05)'
+      }}>
         <div className="filters-grid">
           <div className="search-wrapper">
              <Search size={16} className="search-icon" />
@@ -194,12 +226,12 @@ export default function SinistrosPage() {
 
           <div className="flex gap-2">
              {(filtros.pr || filtros.status || filtros.operacao_id || filtros.data_inicio) && (
-               <button className="btn btn-ghost btn-sm" onClick={() => setFiltros({ pr: '', status: '', operacao_id: '', data_inicio: '', data_fim: '' })}>
-                 Limpar
+               <button className="btn btn-ghost btn-xs" onClick={() => setFiltros({ pr: '', status: '', operacao_id: '', data_inicio: '', data_fim: '' })}>
+                 LIMPAR
                </button>
              )}
-             <button className="btn btn-secondary btn-sm" onClick={carregar}>
-                <RefreshCw size={14} className={loading ? 'rotate-animation' : ''} />
+             <button className="btn btn-primary btn-xs" onClick={carregar} style={{ gap: '4px', borderRadius: '12px' }}>
+                <RefreshCw size={14} className={loading ? 'rotate-animation' : ''} /> ATUALIZAR
              </button>
           </div>
         </div>
@@ -221,8 +253,8 @@ export default function SinistrosPage() {
                   <AlertTriangle size={20} />
                   <span>Existem {sinistrosSemAnalista.length} sinistros sem analista responsável que precisam de atenção.</span>
                 </div>
-                <button className="btn btn-danger btn-sm" style={{ background: 'var(--danger-dark)' }} onClick={() => setFiltros(p => ({ ...p, status: 'aberto' }))}>
-                  Priorizar agora
+                <button className="btn btn-danger btn-sm" onClick={() => setFiltros(p => ({ ...p, status: 'aberto' }))} style={{ gap: '8px' }}>
+                  PRIORIZAR AGORA
                 </button>
               </div>
               <TabelaSinistros lista={sinistrosSemAnalista} />

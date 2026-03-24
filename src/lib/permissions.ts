@@ -59,6 +59,28 @@ export function canManageMetas(perfil: Perfil): boolean {
   return ['administrador', 'financeiro'].includes(perfil);
 }
 
+
 export function canAuditMetas(perfil: Perfil): boolean {
   return ['administrador', 'auditoria'].includes(perfil);
 }
+
+export function canAccessCentral(perfil: Perfil): boolean {
+  return [
+    'administrador', 'ti', 'diretoria', 'gerente_operacoes', 
+    'supervisor', 'analista_sinistro', 'financeiro', 'rh', 'dp', 
+    'auditoria', 'administrativo'
+  ].includes(perfil);
+}
+
+export function canManageCentralConfig(perfil: Perfil): boolean {
+  return ['administrador', 'ti', 'administrativo'].includes(perfil);
+}
+
+export function canViewAllCentralRequests(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'administrativo', 'auditoria'].includes(perfil);
+}
+
+export function canAccessCentralReports(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'gerente_operacoes', 'administrativo'].includes(perfil);
+}
+

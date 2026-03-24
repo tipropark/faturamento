@@ -321,41 +321,44 @@ export default function PermissoesPage() {
           <p className="page-subtitle">Ciclo de vida de perfis, hierarquia de acessos e escopo operacional.</p>
         </div>
         <div style={{ display: 'flex', gap: '0.75rem' }}>
-          <button className="btn btn-secondary" onClick={carregarDados}><RefreshCw size={16} /></button>
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={carregarDados} title="Recarregar Dados"><RefreshCw size={16} /></button>
           
           {activeTab === 'perfil' && perfilAtivo && (
-            <>
-              <button className="btn btn-outline" onClick={() => setModalClone(true)}><Copy size={16} /> Clonar</button>
-              <button className="btn btn-primary" onClick={handleSavePerms} disabled={saving}>
-                {saving ? <RefreshCw size={18} className="animate-spin" /> : <Save size={18} />} Salvar Matriz
+            <div className="flex gap-2">
+              <button className="btn btn-secondary btn-sm" onClick={() => setModalClone(true)} title="Clonar de outro perfil">
+                <Copy size={16} /> <span className="desktop-only">Clonar</span>
               </button>
-            </>
+              <button className="btn btn-primary btn-sm" onClick={handleSavePerms} disabled={saving}>
+                {saving ? <RefreshCw size={16} className="animate-spin" /> : <Save size={16} />} 
+                <span>Salvar Alterações</span>
+              </button>
+            </div>
           )}
 
           {activeTab === 'gestao_perfis' && (
-            <button className="btn btn-primary" onClick={() => setModalNovoPerfil(true)}><Plus size={18} /> Novo Perfil</button>
+            <button className="btn btn-primary btn-sm" onClick={() => setModalNovoPerfil(true)}><Plus size={18} /> Novo Perfil</button>
           )}
 
           {activeTab === 'matriz' && (
-             <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <button className="btn btn-outline" onClick={() => {
+             <div className="flex gap-2">
+                <button className="btn btn-secondary btn-sm" onClick={() => {
                   const input = document.createElement('input');
                   input.type = 'file';
                   input.accept = '.json';
                   input.onchange = handleFileUpload;
                   input.click();
-                }}><Upload size={16} /> Importar Matriz</button>
-                <button className="btn btn-secondary" onClick={exportarMatriz}><Download size={16} /> Exportar CSV</button>
+                }}><Upload size={16} /> <span className="desktop-only">Importar JSON</span></button>
+                <button className="btn btn-primary btn-sm" onClick={exportarMatriz}><Download size={16} /> <span className="desktop-only">Exportar CSV</span></button>
              </div>
           )}
         </div>
       </div>
 
-      <div className="tabs" style={{ marginBottom: '1.5rem' }}>
-        <button className={`tab-btn ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}><ShieldCheck size={18} /> Matriz por Perfil</button>
-        <button className={`tab-btn ${activeTab === 'matriz' ? 'active' : ''}`} onClick={() => setActiveTab('matriz')}><Layout size={18} /> Visão Global</button>
-        <button className={`tab-btn ${activeTab === 'gestao_perfis' ? 'active' : ''}`} onClick={() => setActiveTab('gestao_perfis')}><Users size={18} /> Ciclo de Perfis</button>
-        <button className={`tab-btn ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}><Fingerprint size={18} /> Usuários p/ Perfil</button>
+      <div className="tabs-container" style={{ marginBottom: '2rem' }}>
+        <button className={`tab-item ${activeTab === 'perfil' ? 'active' : ''}`} onClick={() => setActiveTab('perfil')}><ShieldCheck size={18} /> Matriz por Perfil</button>
+        <button className={`tab-item ${activeTab === 'matriz' ? 'active' : ''}`} onClick={() => setActiveTab('matriz')}><Layout size={18} /> Visão Global</button>
+        <button className={`tab-item ${activeTab === 'gestao_perfis' ? 'active' : ''}`} onClick={() => setActiveTab('gestao_perfis')}><Users size={18} /> Ciclo de Perfis</button>
+        <button className={`tab-item ${activeTab === 'usuarios' ? 'active' : ''}`} onClick={() => setActiveTab('usuarios')}><Fingerprint size={18} /> Usuários p/ Perfil</button>
       </div>
 
       {mensagens.texto && (
@@ -376,12 +379,12 @@ export default function PermissoesPage() {
                 <Search size={14} /><input className="form-control form-control-sm" placeholder="Buscar perfil..." value={buscaPerfil} onChange={e => setBuscaPerfil(e.target.value)} />
               </div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', maxHeight: '600px', overflowY: 'auto' }}>
+            <div className="flex flex-col gap-1 p-1" style={{ maxHeight: '650px', overflowY: 'auto' }}>
               {filteredPerfis.map(p => (
-                <button key={p.id} className={`sidebar-link ${perfilAtivo?.id === p.id ? 'active' : ''}`} onClick={() => setPerfilAtivo(p)} style={{ width: '100%', textAlign: 'left', border: 'none', background: 'none' }}>
-                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: p.status === 'ativo' ? (p.eh_modelo ? '#8b5cf6' : 'var(--brand-primary)') : 'var(--gray-300)', marginRight: '0.75rem' }} />
-                  <span style={{ flex: 1 }}>{p.nome}</span>
-                  {p.eh_modelo && <span style={{ fontSize: '0.6rem', padding: '1px 4px', backgroundColor: '#8b5cf620', color: '#8b5cf6', borderRadius: '4px', fontWeight: 700 }}>MODELO</span>}
+                <button key={p.id} className={`nav-card-item ${perfilAtivo?.id === p.id ? 'active' : ''}`} onClick={() => setPerfilAtivo(p)}>
+                  <div className="badge-dot" style={{ backgroundColor: p.status === 'ativo' ? (p.eh_modelo ? '#8b5cf6' : 'var(--brand-primary)') : 'var(--gray-300)' }} />
+                  <span className="flex-1 truncate">{p.nome}</span>
+                  {p.eh_modelo && <span style={{ fontSize: '0.6rem', padding: '2px 6px', backgroundColor: '#8b5cf620', color: '#8b5cf6', borderRadius: '4px', fontWeight: 800 }}>MODELO</span>}
                 </button>
               ))}
             </div>
@@ -412,16 +415,36 @@ export default function PermissoesPage() {
                                 <div><div style={{ fontWeight: 700, color: 'var(--gray-800)', fontSize: '0.875rem' }}>{m.nome}</div><div style={{ fontSize: '0.7rem', color: 'var(--gray-500)' }}>{m.categoria}</div></div>
                               </div>
                             </td>
-                            <td>
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem' }}>
+                            <td style={{ verticalAlign: 'middle' }}>
+                              <div className="flex flex-wrap gap-1">
                                 {NIVEIS.map(n => (
-                                  <button key={n.id} onClick={() => setPermissoesAtivas(prev => ({ ...prev, [m.identificador]: { ...prev[m.identificador], nivel: n.id } }))} className={`badge ${perm.nivel === n.id ? '' : 'badge-outline'}`} style={{ cursor: 'pointer', fontSize: '0.675rem', padding: '0.35rem 0.6rem', border: `1px solid ${n.color}`, backgroundColor: perm.nivel === n.id ? n.color : 'transparent', color: perm.nivel === n.id ? 'white' : n.color, fontWeight: perm.nivel === n.id ? 700 : 500 }}>{n.label}</button>
+                                  <button 
+                                    key={n.id} 
+                                    onClick={() => setPermissoesAtivas(prev => ({ ...prev, [m.identificador]: { ...prev[m.identificador], nivel: n.id } }))} 
+                                    className={`badge ${perm.nivel === n.id ? '' : 'badge-outline'}`} 
+                                    style={{ 
+                                      cursor: 'pointer', 
+                                      padding: '0.4rem 0.75rem', 
+                                      color: perm.nivel === n.id ? 'white' : n.color,
+                                      backgroundColor: perm.nivel === n.id ? n.color : 'transparent',
+                                      borderColor: n.color,
+                                      fontSize: '0.65rem'
+                                    }}
+                                  >
+                                    {n.label}
+                                  </button>
                                 ))}
                               </div>
                             </td>
-                            <td style={{ textAlign: 'center' }}>
-                              <button className={`btn ${perm.escopo === 'restrito' ? 'btn-primary' : 'btn-ghost'} btn-xs`} onClick={() => setModalEscopo({ modulo: m.identificador })} disabled={perm.nivel === 'sem_acesso'} style={{ gap: '4px' }}>
-                                {perm.escopo === 'restrito' ? <Building2 size={14} /> : <Globe size={14} />}{perm.escopo === 'restrito' ? 'Op.' : 'Glob.'}
+                            <td style={{ textAlign: 'center', verticalAlign: 'middle' }}>
+                              <button 
+                                className={`btn btn-xs ${perm.escopo === 'restrito' ? 'btn-primary' : 'btn-ghost'}`} 
+                                onClick={() => setModalEscopo({ modulo: m.identificador })} 
+                                disabled={perm.nivel === 'sem_acesso'}
+                                style={{ gap: '0.3rem', minWidth: '85px' }}
+                              >
+                                {perm.escopo === 'restrito' ? <Building2 size={12} /> : <Globe size={12} />}
+                                {perm.escopo === 'restrito' ? 'Restrito' : 'Global'}
                               </button>
                             </td>
                           </tr>
@@ -470,12 +493,24 @@ export default function PermissoesPage() {
                   <tbody>
                     {perfis.map(p => (
                       <tr key={p.id}>
-                        <td><div style={{ fontWeight: 700 }}>{p.nome}</div><div style={{ fontSize: '0.75rem', color: 'var(--gray-500)' }}>{p.descricao || 'Sem descrição'}</div></td>
-                        <td style={{ fontFamily: 'monospace', fontSize: '0.8125rem' }}>{p.identificador}</td>
-                        <td>{p.eh_modelo ? <span className="badge" style={{ backgroundColor: '#8b5cf620', color: '#8b5cf6' }}>Modelo</span> : <span className="badge badge-gray">Operacional</span>}</td>
-                        <td><span className={`badge-dot ${p.status === 'ativo' ? 'bg-success' : 'bg-gray-300'}`} /><span style={{ marginLeft: '4px', textTransform: 'capitalize' }}>{p.status}</span></td>
-                        <td style={{ fontSize: '0.75rem' }}>{formatarDataHora(p.criado_em)}</td>
-                        <td><button className="btn btn-ghost btn-xs" onClick={() => { setPerfilAtivo(p); setActiveTab('perfil'); }}><Edit2 size={14} /></button></td>
+                        <td>
+                          <div className="font-bold">{p.nome}</div>
+                          <div className="text-xs text-muted">{p.descricao || 'Sem descrição cadastrada'}</div>
+                        </td>
+                        <td className="cell-code">{p.identificador}</td>
+                        <td>{p.eh_modelo ? <span className="badge" style={{ backgroundColor: '#8b5cf620', color: '#8b5cf6' }}>Modelo Maestro</span> : <span className="badge badge-gray">Operacional</span>}</td>
+                        <td>
+                          <div className="flex items-center gap-2">
+                            <span className={`badge-dot ${p.status === 'ativo' ? 'bg-success' : 'bg-gray-300'}`} />
+                            <span style={{ fontSize: '0.8125rem', fontWeight: 600, textTransform: 'capitalize' }}>{p.status}</span>
+                          </div>
+                        </td>
+                        <td className="text-xs font-medium">{formatarDataHora(p.criado_em)}</td>
+                        <td>
+                          <button className="btn btn-ghost btn-sm btn-icon" title="Editar Perfil" onClick={() => { setPerfilAtivo(p); setActiveTab('perfil'); }}>
+                            <Edit2 size={16} />
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -492,11 +527,17 @@ export default function PermissoesPage() {
                   <thead><tr><th>Nome</th><th>Email</th><th>Status</th><th style={{ width: '120px' }}>Ações</th></tr></thead>
                   <tbody>
                     {usuariosDoPerfil.length === 0 ? (
-                      <tr><td colSpan={4} className="table-empty">Nenhum usuário vinculado.</td></tr>
+                      <tr><td colSpan={4} className="table-empty">Nenhum membro vinculado a este perfil.</td></tr>
                     ) : usuariosDoPerfil.map(u => (
                       <tr key={u.id}>
-                        <td style={{ fontWeight: 600 }}>{u.nome}</td><td style={{ color: 'var(--gray-500)' }}>{u.email}</td><td><span className={`badge ${u.status === 'ativo' ? 'badge-success' : 'badge-danger'}`}>{u.status}</span></td>
-                        <td><button className="btn btn-outline btn-xs" onClick={() => { setModalAlterarUsuario(u); setNovoPerfilUsuario(perfilAtivo.identificador); }} style={{ gap: '4px' }}><Filter size={12} /> Alterar</button></td>
+                        <td><div className="font-bold">{u.nome}</div></td>
+                        <td className="text-muted">{u.email}</td>
+                        <td><span className={`badge ${u.status === 'ativo' ? 'badge-success' : 'badge-danger'}`}>{u.status}</span></td>
+                        <td>
+                          <button className="btn btn-secondary btn-xs" onClick={() => { setModalAlterarUsuario(u); setNovoPerfilUsuario(perfilAtivo.identificador); }}>
+                            <Filter size={12} /> Alterar Acesso
+                          </button>
+                        </td>
                       </tr>
                     ))}
                   </tbody>
@@ -546,11 +587,14 @@ export default function PermissoesPage() {
             <div className="card-header" style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}><AlertCircle style={{ color: 'var(--warning)' }} /><div className="card-title">Resumo de Impacto</div></div>
             <div className="card-body">
               <p style={{ fontSize: '0.9rem' }}>Mudanças estruturais afetarão:</p>
-              <div style={{ margin: '1rem 0' }}>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px' }}><span>Usuários</span><span className="badge badge-warning">{modalImpacto.usersCount}</span></div>
-                 <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px', marginTop: '0.5rem' }}><span>Perfil</span><span>{modalImpacto.profileName}</span></div>
+              <div style={{ margin: '1.25rem 0' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px' }}><span>Usuários Impactados</span><span className="badge badge-warning">{modalImpacto.usersCount}</span></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.75rem', backgroundColor: 'var(--gray-50)', borderRadius: '8px', marginTop: '0.5rem' }}><span>Perfil Alvo</span><span className="font-bold">{modalImpacto.profileName}</span></div>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.75rem', marginTop: '1.5rem' }}><button className="btn btn-ghost" onClick={() => setModalImpacto(null)}>Revisar</button><button className="btn btn-primary" onClick={handleSavePerms}>Confirmar e Aplicar</button></div>
+              <div className="flex justify-center gap-3 mt-6">
+                <button className="btn btn-secondary flex-1" onClick={() => setModalImpacto(null)}>Revisar</button>
+                <button className="btn btn-primary flex-1" onClick={handleSavePerms}>Confirmar e Aplicar</button>
+              </div>
             </div>
           </div>
         </div>

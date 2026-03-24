@@ -11,6 +11,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.9.0",
     "@supabase/supabase-js": "^2.99.1",
+    "@types/react-window": "^1.8.8",
     "bcryptjs": "^3.0.3",
     "googleapis": "^171.4.0",
     "lucide-react": "^0.577.0",
@@ -18,7 +19,9 @@
     "next-auth": "^5.0.0-beta.30",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "react-window": "^2.2.7",
     "recharts": "^3.8.0",
+    "swr": "^2.4.1",
     "uuid": "^13.0.0"
   },
   "devDependencies": {

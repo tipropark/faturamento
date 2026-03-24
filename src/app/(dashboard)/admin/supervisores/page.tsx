@@ -60,18 +60,25 @@ export default function SupervisoresPage() {
       <div className="page-header">
         <div>
           <h1 className="page-title">Supervisores</h1>
-          <p className="page-subtitle">{supervisoresFiltrados.length} supervisor(es) cadastrado(s)</p>
+          <p className="page-subtitle">{supervisoresFiltrados.length} supervisores em campo</p>
         </div>
-        <button className="btn btn-secondary btn-sm" onClick={carregarDados}>
-          <RefreshCw size={14} /> Atualizar
-        </button>
+        <div className="flex gap-2">
+          <button className="btn btn-secondary btn-sm btn-icon" onClick={carregarDados} title="Atualizar">
+            <RefreshCw size={16} />
+          </button>
+        </div>
       </div>
 
       <div className="card">
         <div className="filters-bar">
-          <div className="filter-search">
-            <Search size={15} className="filter-search-icon" />
-            <input placeholder="Buscar supervisor..." value={busca} onChange={e => setBusca(e.target.value)} />
+          <div className="filter-search" style={{ flex: 1 }}>
+            <Search size={14} />
+            <input 
+              className="form-control"
+              placeholder="Buscar supervisor por nome ou email..." 
+              value={busca} 
+              onChange={e => setBusca(e.target.value)} 
+            />
           </div>
         </div>
 
@@ -102,7 +109,7 @@ export default function SupervisoresPage() {
                   </td>
                   <td>
                     <select
-                      className="filter-control"
+                      className="form-control form-control-sm"
                       style={{ minWidth: '180px' }}
                       value={s.gerente_operacoes_id || ''}
                       onChange={e => alterarGerente(s.id, e.target.value)}
@@ -133,7 +140,7 @@ export default function SupervisoresPage() {
                   </td>
                   <td>
                     <button
-                      className="action-btn"
+                      className="btn btn-ghost btn-xs btn-icon"
                       title="Ver operações"
                       onClick={() => { setSupervisorSelecionado(s); setShowOps(true); }}
                     >

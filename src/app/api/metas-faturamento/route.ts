@@ -10,22 +10,31 @@ export const GET = withAudit(async (req, session) => {
   const supabase = await getAuditedClient(userId);
   const { searchParams } = new URL(req.url);
 
+  const withDiarias = searchParams.get('with_diarias') === 'true';
+  const metaId = searchParams.get('id');
   const ano = searchParams.get('ano');
   const mes = searchParams.get('mes');
   const operacaoId = searchParams.get('operacao_id');
-  const tipo = searchParams.get('tipo');
+  const tipo = searchParams.get('tipo_meta');
+
+  // Construção dinâmica do SELECT para reduzir payload
+  let selectStr = `
+    *,
+    operacao:operacoes(id, nome_operacao, bandeira),
+    apuracao:metas_faturamento_apuracoes!meta_id(*)
+  `;
+  
+  if (withDiarias) {
+    selectStr += `, diarias:metas_faturamento_apuracoes_diarias!meta_id(*)`;
+  }
 
   let query = supabase
     .from('metas_faturamento')
-    .select(`
-      *,
-      operacao:operacoes(id, nome_operacao, bandeira),
-      apuracao:metas_faturamento_apuracoes!meta_id(*),
-      diarias:metas_faturamento_apuracoes_diarias!meta_id(*)
-    `)
+    .select(selectStr)
     .order('ano', { ascending: false })
     .order('mes', { ascending: false });
 
+  if (metaId) query = query.eq('id', metaId);
   if (ano) query = query.eq('ano', Number(ano));
   if (mes) query = query.eq('mes', Number(mes));
   if (operacaoId) query = query.eq('operacao_id', operacaoId);

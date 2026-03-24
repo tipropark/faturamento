@@ -37,8 +37,9 @@ export async function GET(
   
   console.log(`DEBUG: Gerando script para Op: ${id}, Sistema: [${sistema}], Arq: [${arquitetura}]`);
 
-  // Validação de Sistema Homologado (Atualmente apenas PARCO)
-  if (sistema !== 'PARCO' || !arquitetura) {
+  // Validação de Sistemas Homologados
+  const sistemasHomologados = ['PARCO', 'PERSONAL'];
+  if (!sistemasHomologados.includes(sistema) || !arquitetura) {
     const errorMsg = `@echo off
 chcp 65001 >nul
 echo.
@@ -66,57 +67,59 @@ pause
     });
   }
 
-  // Conteúdo do .bat configurado para PARCO
-  const agentFile = `agente_parco_${arquitetura}.ps1`;
-  const batContent = `@echo off
+  // Nome do arquivo do agente baseado no sistema e arquitetura
+  const agentFile = `agente_${sistema.toLowerCase()}_${arquitetura}.ps1`;
+// 2. Configurações de Conexão
+const defaultDb = sistema === 'PERSONAL' && (!auto?.sql_database && op.sql_database === 'SGP' || !op.sql_database) 
+  ? 'C:\\SgpWin\\SGP.FDB' 
+  : (auto?.sql_database || op.sql_database || 'SGP');
+
+const batContent = `@echo off
 chcp 65001 >nul
 setlocal
 
-:: ==============================================================================
-:: LEVE ERP - DISPARADOR DO AGENTE COLETOR - CONFIGURADO PARA: ${op.nome_operacao}
-:: ==============================================================================
+echo ============================================================
+echo   LEVE ERP - INICIANDO AGENTE: ${op.nome_operacao}
+echo   SISTEMA: ${sistema} - ARQUITETURA: ${arquitetura}
+echo ============================================================
+echo.
 
-:: 1. Definição de Identificadores
+:: 1. Variaveis de Ambiente
 set "OPERATION_ID=${op.id}"
 set "AGENT_ID=${op.id_legado || op.id}"
-
-:: 2. Configurações do Banco de Dados Local (SQL Server)
 set "LOCAL_SERVER=${auto?.sql_server || op.sql_server || 'localhost'}"
-set "LOCAL_DATABASE=${auto?.sql_database || op.sql_database || 'T4UPark'}"
-set "SQL_USER="
-set "SQL_PASSWORD="
+set "LOCAL_DATABASE=${defaultDb}"
+set "SQL_USER=${auto?.sql_user || 'SYSDBA'}"
+set "SQL_PASSWORD=${auto?.sql_password || 'masterkey'}"
 
-echo.
-echo ============================================================
-echo   LEVE ERP - INICIANDO SINCRONIZACAO: "${op.nome_operacao}"
-echo   SISTEMA: "${sistema}" - ARQUITETURA: "${arquitetura}"
-echo ============================================================
+:: 2. Selecao da Arquitetura do PowerShell
+set "PS_CMD=powershell.exe"
+if /i "${arquitetura}" == "x86" set "PS_CMD=%SystemRoot%\\SysWOW64\\WindowsPowerShell\\v1.0\\powershell.exe"
+
+echo [DEBUG] Script: "${agentFile}"
+echo [DEBUG] PS: "%PS_CMD%"
 echo.
 
-:: Verificar se o arquivo do agente existe
+:: 3. Verificacao de Arquivo
 if not exist "%~dp0${agentFile}" (
-    echo [ERRO] Arquivo do agente nao encontrado: "${agentFile}"
-    echo.
-    echo Certifique-se de que o arquivo .bat esta na mesma pasta que 
-    echo o script PowerShell ps1 correspondente.
-    echo.
+    echo [ERRO] Arquivo nao encontrado: "${agentFile}"
     pause
     exit /b
 )
 
-:: 3. Execução do PowerShell (Tudo em uma linha para evitar erros de sintaxe do CMD)
-powershell.exe -ExecutionPolicy Bypass -File "%~dp0${agentFile}" -OperationID "%OPERATION_ID%" -AgentID "%AGENT_ID%" -LocalServer "%LOCAL_SERVER%" -LocalDatabase "%LOCAL_DATABASE%" -SqlUser "%SQL_USER%" -SqlPassword "%SQL_PASSWORD%"
+:: 4. Execucao
+"%PS_CMD%" -ExecutionPolicy Bypass -File "%~dp0${agentFile}" -OperationID "%OPERATION_ID%" -AgentID "%AGENT_ID%" -LocalServer "%LOCAL_SERVER%" -LocalDatabase "%LOCAL_DATABASE%" -SqlUser "%SQL_USER%" -SqlPassword "%SQL_PASSWORD%"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo [ERRO] Falha na execucao do agente. Verifique os logs acima.
+    echo [ERRO] Falha na execucao. Verifique os logs acima.
 ) else (
     echo.
     echo [SUCESSO] Sincronizacao finalizada.
 )
 
 echo.
-
+pause
 `;
 
   return new NextResponse(batContent.replace(/\r?\n/g, '\r\n'), {

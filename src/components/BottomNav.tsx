@@ -3,11 +3,10 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
-  LayoutDashboard, 
-  DollarSign, 
-  Target, 
-  Building2, 
-  Menu 
+  Home, 
+  BarChart3, 
+  AlertTriangle,
+  MoreHorizontal
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -22,33 +21,29 @@ export default function BottomNav({ onMoreClick }: BottomNavProps) {
     return pathname.startsWith(href);
   };
 
-  const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    { href: '/admin/faturamento', icon: DollarSign, label: 'Faturamento' },
-    { href: '/admin/faturamento/metas', icon: Target, label: 'Metas' },
-    { href: '/operacoes', icon: Building2, label: 'Operações' },
-  ];
-
   return (
-    <nav className="bottom-nav">
-      {navItems.map((item) => {
-        const Icon = item.icon;
-        const active = isActive(item.href);
-        return (
-          <Link 
-            key={item.href} 
-            href={item.href}
-            className={`bottom-nav-item ${active ? 'active' : ''}`}
-          >
-            <Icon size={20} />
-            <span>{item.label}</span>
-          </Link>
-        );
-      })}
-      <button className="bottom-nav-item" onClick={onMoreClick}>
-        <Menu size={20} />
-        <span>Mais</span>
-      </button>
+    <nav className="bottom-nav-v2">
+      <div className="bottom-pill">
+        <Link href="/dashboard" className={`bottom-nav-item-v2 ${isActive('/dashboard') ? 'active' : ''}`}>
+          <Home size={18} />
+          <span>Início</span>
+        </Link>
+        
+        <Link href="/admin/faturamento" className={`bottom-nav-item-v2 ${isActive('/admin/faturamento') ? 'active' : ''}`}>
+          <BarChart3 size={18} />
+          <span>Kpis</span>
+        </Link>
+
+        <Link href="/sinistros" className={`bottom-nav-item-v2 ${isActive('/sinistros') ? 'active' : ''}`}>
+          <AlertTriangle size={18} />
+          <span>Alertas</span>
+        </Link>
+
+        <button onClick={onMoreClick} className="bottom-nav-item-v2">
+          <MoreHorizontal size={20} />
+          <span>Menu</span>
+        </button>
+      </div>
     </nav>
   );
 }

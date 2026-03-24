@@ -40,6 +40,26 @@ export default function OperacoesPage() {
         </button>
       </header>
 
+      {/* Strategic Summary (Benchmark: Metas) */}
+      <div className="stats-grid">
+        {[
+          { label: 'Unidades Ativas', value: operacoes.filter(o => o.status === 'ativa').length, icon: Building2, color: 'var(--brand-accent)' },
+          { label: 'Total de Vagas', value: operacoes.reduce((acc, o) => acc + (o.quantidade_vagas || 0), 0), icon: RefreshCw, color: 'var(--success)' },
+          { label: 'Cobertura CFTV', value: operacoes.filter(o => o.possui_cftv).length, icon: Wifi, color: 'var(--warning)' },
+          { label: 'Sem Monitoramento', value: operacoes.filter(o => !o.possui_cftv).length, icon: WifiOff, color: 'var(--danger)' },
+        ].map((stat, i) => (
+          <div key={i} className="stat-card">
+            <div className="stat-icon-wrapper" style={{ color: stat.color, background: `${stat.color}10` }}>
+              <stat.icon size={22} />
+            </div>
+            <div>
+              <div className="stat-label">{stat.label}</div>
+              <div className="stat-value">{stat.value}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <section className="filters-card">
         <div className="filters-grid">
           <div className="search-wrapper">
