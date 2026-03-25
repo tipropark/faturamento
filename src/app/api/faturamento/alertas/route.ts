@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getAuditedClient, withAudit } from '@/lib/audit';
 import { FaturamentoAlertEngine } from '@/lib/faturamento-alertas';
 
+export const dynamic = 'force-dynamic';
+
 /**
  * API de Alertas de Faturamento (MVP)
  * Permite listar e disparar re-avaliações de saúde da meta
@@ -90,11 +92,12 @@ export const POST = withAudit(async (req, session) => {
 
   // 1. Atualizar Status e Responsável do Alerta
   const updateData: any = {
-    status: acao, // Agora usamos os novos status passados diretamente
+    status: acao,
     atualizado_at: new Date().toISOString()
   };
 
-  if (comentario && acao === 'justificado') {
+  // Sempre salva a justificativa se for enviada no payload (mesmo que seja string vazia para limpar)
+  if (comentario !== undefined) {
     updateData.justificativa = comentario;
   }
   

@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { 
   X, AlertTriangle, CheckCircle2, Clock, User, MessageSquare, 
   History, Info, ChevronRight, Save, Trash2, Send, Activity, PenTool,
-  CalendarDays, AlertCircle, RefreshCcw
+  CalendarDays, AlertCircle, RefreshCcw, PenLine
 } from 'lucide-react';
 import { 
   AlertaMeta, StatusAlertaMeta, STATUS_ALERTA_META_LABELS, 
@@ -20,18 +21,19 @@ interface AlertaTratativaModalProps {
 }
 
 export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEdit, userId }: AlertaTratativaModalProps) {
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [analistas, setAnalistas] = useState<Usuario[]>([]);
   const [historico, setHistorico] = useState<any[]>([]);
   const [comentario, setComentario] = useState('');
-  const [desativarDiaRecorrente, setDesativarDiaRecorrente] = useState(false);
   
-  // Sistema de Notificação Inline (Substitui o alert popup)
+  // Sistema de Notificação Inline
   const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
 
   const [currentUserId, setCurrentUserId] = useState<string | null>(userId || null);
   const [editingFeedbackId, setEditingFeedbackId] = useState<string | null>(null);
   const [editingContent, setEditingContent] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
     status: alerta.status as StatusAlertaMeta || 'novo',
@@ -39,9 +41,18 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
     justificativa: alerta.justificativa || ''
   });
 
+  // Sincroniza estado interno caso o alerta mude (por refresh do pai)
+  useEffect(() => {
+    setFormData({
+      status: alerta.status as StatusAlertaMeta || 'novo',
+      analista_responsavel_id: alerta.analista_responsavel_id || '',
+      justificativa: alerta.justificativa || ''
+    });
+  }, [alerta.id, alerta.status, alerta.justificativa, alerta.analista_responsavel_id]);
+
   const showNotification = (type: 'success' | 'error', message: string) => {
     setNotification({ type, message });
-    setTimeout(() => setNotification(null), 4000); // Auto-hide após 4s
+    setTimeout(() => setNotification(null), 4000);
   };
 
   const fixDate = (d: any) => {
@@ -49,12 +60,6 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
     const s = d.toString().split('T')[0];
     return new Date(s + 'T12:00:00');
   };
-
-  const dataRef = fixDate(alerta.data_referencia);
-  const diaSemanaIndex = dataRef.getDay();
-  const DIAS_NOMES = ['domingo', 'segunda', 'terca', 'quarta', 'quinta', 'sexta', 'sabado'];
-  const diaSemanaNome = DIAS_NOMES[diaSemanaIndex];
-  const isFinalDeSemana = diaSemanaIndex === 0 || diaSemanaIndex === 6;
 
   useEffect(() => {
     fetchAnalistas();
@@ -89,8 +94,8 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
     } catch (err) { console.error(err); }
   };
 
-  const handleSave = async () => {
-    if (!formData.status) return showNotification('error', 'Selecione um status obrigatório!');
+  const handleSave = async (isFinalize = false) => {
+    if (!formData.status && isFinalize) return showNotification('error', 'Selecione um status conclusivo!');
     
     setLoading(true);
     try {
@@ -108,14 +113,18 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
 
       if (!res.ok) throw new Error('Erro ao salvar tratativa');
 
-      if (desativarDiaRecorrente && isFinalDeSemana) {
-         // ... logica de calendario se necessário ...
-      }
-
-      showNotification('success', 'Ação registrada com sucesso!');
+      showNotification('success', isFinalize ? 'Tratativa efetivada com sucesso!' : 'Ação registrada com sucesso!');
       setComentario('');
-      await fetchHistorico(); // RECARGA IMEDIATA
+      
+      await fetchHistorico();
       onRefresh();
+
+      if (isFinalize) {
+        setTimeout(() => {
+          onClose();
+          router.push(`/admin/auditoria/metas/operacao/${alerta.operacao_id}`);
+        }, 1500);
+      }
     } catch (err: any) {
       showNotification('error', err.message);
     } finally {
@@ -124,11 +133,11 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
   };
 
   const handleDeleteComment = async (fid: string) => {
-    if (!confirm('Tem certeza que deseja remover este item?')) return;
     try {
        const res = await fetch(`/api/faturamento/alertas?feedback_id=${fid}`, { method: 'DELETE' });
        if (res.ok) {
          showNotification('success', 'Item removido do histórico');
+         setConfirmDeleteId(null);
          fetchHistorico();
        }
     } catch (e) { showNotification('error', 'Falha ao remover item'); }
@@ -162,214 +171,279 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content modal-lg" onClick={e => e.stopPropagation()} style={{ minHeight: '80vh', position: 'relative', borderRadius: '24px' }}>
+    <div className="modal-overlay" onClick={onClose} style={{ backdropFilter: 'blur(8px)', backgroundColor: 'rgba(0,0,0,0.6)' }}>
+      <div className="modal-content modal-xl" onClick={e => e.stopPropagation()} style={{ 
+        minHeight: '85vh', 
+        position: 'relative', 
+        borderRadius: '32px', 
+        border: '1px solid var(--border-color)',
+        overflow: 'hidden',
+        background: 'var(--bg-app)',
+        maxWidth: '1280px' // Aumento para ultra-wide view
+      }}>
         
-        {/* NOTIFICAÇÃO INLINE EXCLUSIVA */}
         {notification && (
           <div className={`notification-inline ${notification.type === 'success' ? 'success' : 'error'}`} style={{
             position: 'absolute', top: '24px', left: '50%', transform: 'translateX(-50%)', zIndex: 9999,
-            padding: '1rem 2rem', borderRadius: '16px', background: notification.type === 'success' ? '#22C55E' : '#EF4444',
-            color: 'white', fontWeight: 700, boxShadow: '0 20px 40px rgba(0,0,0,0.3)', display: 'flex', alignItems: 'center', gap: '12px',
-            animation: 'slideDownIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+            padding: '1rem 2.5rem', borderRadius: '20px', background: notification.type === 'success' ? 'var(--success)' : 'var(--danger)',
+            color: 'white', fontWeight: 800, boxShadow: '0 20px 50px rgba(0,0,0,0.2)', display: 'flex', alignItems: 'center', gap: '14px',
+            animation: 'slideDownIn 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+            minWidth: '320px',
+            justifyContent: 'center'
           }}>
-            {notification.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+            {notification.type === 'success' ? <CheckCircle2 size={22} /> : <AlertCircle size={22} />}
             {notification.message}
           </div>
         )}
 
-        <header className="modal-header" style={{ padding: '2rem 2.5rem', borderBottom: '1px solid #F1F5F9' }}>
+        <header className="modal-header" style={{ padding: '2.5rem 3rem', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-card)' }}>
            <div>
-              <div className="flex items-center gap-2 mb-2">
-                 <span className={`badge ${getStatusBadgeClass(alerta.status)}`} style={{ padding: '0.4rem 1rem', fontSize: '0.7rem', fontWeight: 800 }}>
+              <div className="flex items-center gap-3 mb-2">
+                 <span className={`badge ${getStatusBadgeClass(alerta.status)}`} style={{ padding: '0.5rem 1.25rem', fontSize: '0.75rem', fontWeight: 900, borderRadius: '10px' }}>
                     {(STATUS_ALERTA_META_LABELS[alerta.status as StatusAlertaMeta] || alerta.status).toUpperCase()}
                  </span>
-                 <span className="text-[10px] text-slate-400 font-black tracking-widest bg-slate-100 px-2 py-1 rounded">AUDIT PRO #{alerta.id?.substring(0,8)}</span>
+                 <span style={{ 
+                    fontSize: '0.7rem', 
+                    color: 'var(--gray-500)', 
+                    fontWeight: 900, 
+                    letterSpacing: '1px', 
+                    background: 'var(--gray-100)', 
+                    padding: '0.4rem 0.8rem', 
+                    borderRadius: '8px' 
+                  }}>
+                    ID do alerta: #{alerta.id?.substring(0,8)}
+                  </span>
               </div>
-              <h2 className="modal-title" style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0F172A' }}>{alerta.operacao?.nome_operacao || 'Operação Global'}</h2>
+              <h2 className="modal-title" style={{ fontSize: '1.8rem', fontWeight: 900, color: 'var(--text-title)', letterSpacing: '-0.5px' }}>
+                {alerta.operacao?.nome_operacao || 'Operação Global'}
+              </h2>
            </div>
-           <button className="btn-icon btn-ghost" onClick={onClose} style={{ width: '48px', height: '48px', borderRadius: '14px' }}>
-              <X size={28} />
+           <button className="btn-icon btn-ghost" onClick={onClose} style={{ width: '56px', height: '56px', borderRadius: '18px', background: 'var(--gray-50)' }}>
+              <X size={24} color="var(--text-main)" />
            </button>
         </header>
 
-        <main className="modal-body custom-scrollbar" style={{ padding: '2.5rem', background: '#F8FAFC' }}>
-           <div className="form-grid form-grid-2">
+        <main className="modal-body custom-scrollbar" style={{ padding: '2rem 3rem', background: 'var(--bg-app)' }}>
+           {/* Novo Grid Split para maximizar informações no campo de visão */}
+           <div style={{ display: 'grid', gridTemplateColumns: '420px 1fr', gap: '2rem', height: '100%' }}>
               
-              <section className="card-v2" style={{ padding: '1.5rem', background: 'white' }}>
-                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                    <Info size={14} className="text-primary" /> Sumário do Desvio
-                 </h3>
-                 <div className="flex flex-col gap-4">
-                    <div className="flex flex-between items-center text-sm">
-                       <span className="text-slate-500 font-bold">Natureza:</span>
-                       <span className="font-extrabold text-slate-900">{alerta.tipo_alerta || alerta.regra?.codigo || 'Operacional'}</span>
-                    </div>
-                    <div className="flex flex-between items-center text-sm">
-                       <span className="text-slate-500 font-bold">Incidência:</span>
-                       <span className="font-extrabold text-slate-900">{fixDate(alerta.data_referencia || alerta.criado_at).toLocaleDateString('pt-BR')}</span>
-                    </div>
-                    <div className="flex flex-between items-center text-sm">
-                       <span className="text-slate-500 font-bold">Nível Crítico:</span>
-                        <div style={{ 
-                           padding: '0.2rem 0.6rem', borderRadius: '6px', fontSize: '0.65rem', fontWeight: 900, color: 'white',
-                           background: alerta.severidade === 'critico' ? '#EF4444' : alerta.severidade === 'alerta' ? '#F97316' : '#3B82F6' 
-                        }}>
-                           {(alerta.severidade || 'insight').toUpperCase()}
-                        </div>
-                    </div>
-                    <hr className="my-2 border-slate-100" />
-                    <div className="flex items-center gap-3">
-                       <div className="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-600">
-                          <User size={20} />
+              {/* Coluna Esquerda: Dados e Ações */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                 
+                 <section className="card-v2" style={{ padding: '1.75rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                    <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <Info size={16} color="var(--brand-primary)" /> Detalhes do Registro
+                    </h3>
+                    <div className="flex flex-col gap-4">
+                       <div className="flex flex-between items-center text-sm">
+                          <span style={{ color: 'var(--gray-500)', fontWeight: 700 }}>Tipo:</span>
+                          <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>{alerta.tipo_alerta || alerta.regra?.codigo || 'Operacional'}</span>
                        </div>
-                       <div>
-                          <div className="text-[10px] font-bold text-slate-400 leading-none">AUDITOR RESPONSÁVEL</div>
-                          <div className="text-sm font-extrabold text-primary">
-                             {analistas.find(u => u.id === alerta.analista_responsavel_id)?.nome || 'Pendente de Atribuição'}
-                          </div>
+                       <div className="flex flex-between items-center text-sm">
+                          <span style={{ color: 'var(--gray-500)', fontWeight: 700 }}>Data:</span>
+                          <span style={{ color: 'var(--text-main)', fontWeight: 800 }}>{fixDate(alerta.data_referencia || alerta.criado_at).toLocaleDateString('pt-BR')}</span>
+                       </div>
+                       <div className="flex flex-between items-center text-sm">
+                          <span style={{ color: 'var(--gray-500)', fontWeight: 700 }}>Criticidade:</span>
+                           <div style={{ 
+                              padding: '0.3rem 0.8rem', borderRadius: '8px', fontSize: '0.65rem', fontWeight: 900, color: 'white',
+                              background: alerta.severidade === 'critico' ? 'var(--danger)' : alerta.severidade === 'alerta' ? 'var(--warning)' : 'var(--brand-primary)' 
+                           }}>
+                              {(alerta.severidade || 'insight').toUpperCase()}
+                           </div>
                        </div>
                     </div>
-                 </div>
-              </section>
+                 </section>
 
-              <section className="card-v2" style={{ padding: '1.5rem', background: 'white' }}>
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                    <Activity size={14} className="text-primary" /> Diagnóstico do Sistema
-                  </h3>
-                  <div className="bg-slate-50 p-5 rounded-2xl border-2 border-dashed border-slate-200">
-                    <div className="text-sm font-black text-slate-900 mb-3 flex items-center gap-2">
-                       <AlertCircle size={16} className="text-primary" />
-                       {alerta.resumo || 'Análise de integridade.'}
+                 <section className="card-v2" style={{ padding: '1.75rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', flex: 1 }}>
+                    <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <PenTool size={16} color="var(--brand-primary)" /> Ações de Auditoria
+                    </h3>
+                    <div className="flex flex-col gap-5">
+                       <div className="form-group">
+                          <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Alterar Status</label>
+                          <select className="form-control" disabled={!canEdit} value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value as StatusAlertaMeta }))} style={{ borderRadius: '12px', height: '48px', border: '1px solid var(--border-color)', fontWeight: 800, background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                             <option value="novo">Novo / Pendente</option>
+                             <option value="em_analise">Em Análise Técnica</option>
+                             <option value="justificado">Tratativa Justificada</option>
+                             <option value="resolvido">Resolvido / Ajustado</option>
+                             <option value="descartado">Falso Alerta / Outros</option>
+                          </select>
+                       </div>
+                       <div className="form-group">
+                          <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Designar Analista</label>
+                          <select className="form-control" disabled={!canEdit} value={formData.analista_responsavel_id} onChange={e => setFormData(f => ({ ...f, analista_responsavel_id: e.target.value }))} style={{ borderRadius: '12px', height: '48px', border: '1px solid var(--border-color)', fontWeight: 800, background: 'var(--bg-app)', color: 'var(--text-main)' }}>
+                             <option value="">-- Selecionar Auditor --</option>
+                             {analistas.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
+                          </select>
+                       </div>
+                       <div className="form-group">
+                          <label style={{ fontSize: '10px', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', marginBottom: '8px', display: 'block' }}>Parecer Técnico</label>
+                          <textarea className="form-control" placeholder="Descreva os motivos e medidas..." disabled={!canEdit} value={formData.justificativa} onChange={e => setFormData(f => ({ ...f, justificativa: e.target.value }))} style={{ borderRadius: '16px', minHeight: '140px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', color: 'var(--text-main)', padding: '1rem' }} />
+                       </div>
                     </div>
-                    
-                    <div className="diagnostic-content text-xs leading-relaxed text-slate-600">
-                       {(() => {
-                          const det = alerta.detalhes || {};
-                          const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
-                          
-                          if (det.dias && det.ultimos_valores) {
-                             return (
-                                <div className="space-y-3">
-                                   <p>Ocorrência de <strong>{det.dias} dias</strong> abaixo da performance esperada.</p>
-                                   <div className="flex flex-wrap gap-2">
-                                      {det.ultimos_valores.map((v: number, i: number) => (
-                                         <span key={i} className="px-2 py-1 bg-white border-2 border-slate-100 rounded-lg font-mono font-black text-danger">
-                                            {fmt(v)}
-                                         </span>
-                                      ))}
+                 </section>
+
+              </div>
+
+              {/* Coluna Direita: Diagnóstico e Timeline */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
+                 
+                 <section className="card-v2" style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+                    <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '1.25rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <Activity size={16} color="var(--brand-primary)" /> Diagnóstico do Sistema
+                    </h3>
+                    <div style={{ background: 'var(--bg-app)', padding: '1.5rem', borderRadius: '24px', border: '2px dashed var(--border-color)' }}>
+                       <div style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--text-main)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <AlertCircle size={20} color="var(--brand-primary)" />
+                          {alerta.resumo || 'Análise de integridade.'}
+                       </div>
+                       
+                       <div style={{ fontSize: '0.85rem', lineHeight: '1.6', color: 'var(--gray-600)', fontWeight: 600 }}>
+                          {(() => {
+                             const det = alerta.detalhes || {};
+                             const fmt = (v: number) => new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(v || 0);
+                             
+                             if (det.dias && det.ultimos_valores) {
+                                return (
+                                   <div className="space-y-4">
+                                      <p>Foram detectados <strong>{det.dias} dias</strong> consecutivos com performance abaixo da média.</p>
+                                      <div className="flex flex-wrap gap-3">
+                                         {det.ultimos_valores.map((v: number, i: number) => (
+                                            <span key={i} style={{ padding: '0.5rem 1rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '12px', fontFamily: 'monospace', fontWeight: 900, color: 'var(--danger)', fontSize: '0.9rem' }}>
+                                               {fmt(v)}
+                                            </span>
+                                         ))}
+                                      </div>
                                    </div>
-                                </div>
-                             );
-                          }
+                                );
+                             }
 
-                          if (det.valor === 0 && (det.meta !== undefined)) {
-                             return (
-                                <div className="space-y-2">
-                                   <p>Unidade identificada com lançamento zero em dia operacional.</p>
-                                   <div className="bg-white p-2 rounded-xl border border-slate-100">
-                                      Realizado: <strong className="text-danger">{fmt(0)}</strong> • Meta: <strong className="text-slate-900">{fmt(det.meta || 0)}</strong>
+                             if (det.valor === 0 && (det.meta !== undefined)) {
+                                return (
+                                   <div className="space-y-3">
+                                      <p>Ocorrência Crítica: Faturamento zerado em período operacional pendente.</p>
+                                      <div style={{ background: 'var(--bg-card)', padding: '1.25rem', borderRadius: '16px', border: '1px solid var(--border-color)', display: 'inline-block' }}>
+                                         Realizado: <strong style={{ color: 'var(--danger)' }}>{fmt(0)}</strong> • Esperado: <strong style={{ color: 'var(--text-main)' }}>{fmt(det.meta || 0)}</strong>
+                                      </div>
                                    </div>
-                                </div>
-                             );
-                          }
-                          return <pre className="text-[10px] font-mono text-slate-400">{JSON.stringify(det, null, 2)}</pre>;
-                       })()}
+                                );
+                             }
+                             return <pre style={{ fontSize: '11px', color: 'var(--gray-400)', whiteSpace: 'pre-wrap', fontFamily: 'monospace' }}>{JSON.stringify(det, null, 2)}</pre>;
+                          })()}
+                       </div>
                     </div>
-                  </div>
-              </section>
+                 </section>
 
-              <section className="span-2 card-v2" style={{ padding: '2rem', background: 'white' }}>
-                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-6 flex items-center gap-2">
-                    <PenTool size={14} className="text-primary" /> Decisão de Auditoria
-                 </h3>
-                 <div className="form-grid form-grid-2">
-                    <div className="form-group"><label className="form-label font-black text-slate-500 uppercase text-[10px]">Alterar Status</label>
-                       <select className="form-control" disabled={!canEdit} value={formData.status} onChange={e => setFormData(f => ({ ...f, status: e.target.value as StatusAlertaMeta }))} style={{ borderRadius: '12px', height: '48px', border: '2px solid #F1F5F9', fontWeight: 800 }}>
-                          <option value="novo">Novo / Pendente</option>
-                          <option value="em_analise">Em Análise</option>
-                          <option value="justificado">Justificado</option>
-                          <option value="resolvido">Resolvido</option>
-                          <option value="descartado">Falso Alerta</option>
-                       </select>
-                    </div>
-                    <div className="form-group"><label className="form-label font-black text-slate-500 uppercase text-[10px]">Mudar Responsável</label>
-                       <select className="form-control" disabled={!canEdit} value={formData.analista_responsavel_id} onChange={e => setFormData(f => ({ ...f, analista_responsavel_id: e.target.value }))} style={{ borderRadius: '12px', height: '48px', border: '2px solid #F1F5F9', fontWeight: 800 }}>
-                          <option value="">-- Designar Analista --</option>
-                          {analistas.map(u => <option key={u.id} value={u.id}>{u.nome}</option>)}
-                       </select>
-                    </div>
-                    <div className="form-group span-2"><label className="form-label font-black text-slate-500 uppercase text-[10px]">Parecer Técnico Final</label>
-                       <textarea className="form-control" placeholder="Escreva a análise conclusiva aqui..." disabled={!canEdit} value={formData.justificativa} onChange={e => setFormData(f => ({ ...f, justificativa: e.target.value }))} style={{ borderRadius: '16px', minHeight: '100px', border: '2px solid #F1F5F9' }} />
-                    </div>
-                 </div>
-                 <div className="mt-6 pt-6 border-t border-slate-100">
-                    <label className="block text-[10px] font-black text-slate-400 uppercase mb-3">Nova Observação de Campo</label>
-                    <div className="flex gap-3">
-                       <input type="text" className="form-control flex-1" placeholder="Adicionar detalhe operacional..." value={comentario} onChange={e => setComentario(e.target.value)} style={{ borderRadius: '12px', height: '48px', border: '2px solid #F1F5F9' }} />
-                       <button className="btn btn-primary" disabled={!comentario.trim() || !canEdit || loading} onClick={handleSave} style={{ borderRadius: '12px', padding: '0 1.5rem', height: '48px' }}>
-                          {loading ? <RefreshCcw className="animate-spin" /> : <Send size={20} />}
-                       </button>
-                    </div>
-                 </div>
-              </section>
-
-              {/* TIMELINE DE HISTÓRICO PREMIUM */}
-              <section className="span-2 card-v2" style={{ padding: '2rem', background: 'white' }}>
-                 <h3 className="text-xs font-black text-slate-400 uppercase tracking-wider mb-8 flex items-center gap-2">
-                    <History size={14} className="text-primary" /> Timeline de Interações
-                 </h3>
-                 <div className="timeline-v2 flex flex-col gap-8 relative px-4">
-                    <div className="absolute left-6 top-0 bottom-0 w-1 bg-slate-50" />
+                 <section className="card-v2 custom-scrollbar" style={{ padding: '2rem', background: 'var(--bg-card)', border: '1px solid var(--border-color)', flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+                    <h3 style={{ fontSize: '0.75rem', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase', letterSpacing: '2px', marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                       <History size={16} color="var(--brand-primary)" /> Timeline de Interações
+                    </h3>
                     
-                    {historico.length === 0 ? (
-                      <div className="text-sm text-slate-400 italic py-8 text-center bg-slate-50 rounded-2xl">Aguardando registro inicial do sistema...</div>
-                    ) : historico.map((h, idx) => (
-                       <div key={idx} className="group relative flex gap-6 items-start">
-                          <div className={`relative z-10 w-4 h-4 rounded-full mt-2 ring-4 ring-white ${h.acao === 'novo' ? 'bg-orange-500' : h.acao === 'resolvido' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                          
-                          <div className="flex-1 bg-slate-50 rounded-2xl p-5 border border-transparent transition-all hover:bg-white hover:border-slate-100 hover:shadow-xl hover:shadow-slate-100">
-                             <div className="flex flex-between mb-2">
-                                <div className="text-[10px] font-black uppercase text-slate-400 tracking-tighter">
-                                   {h.usuario?.nome || 'INTEGRAÇÃO ERP'} • {new Date(h.criado_at).toLocaleString('pt-BR')}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem', position: 'relative', paddingLeft: '0.5rem' }}>
+                       <div style={{ position: 'absolute', left: '11px', top: '0', bottom: '0', width: '2px', background: 'var(--gray-100)' }} />
+                       
+                       {historico.length === 0 ? (
+                         <div style={{ fontSize: '0.875rem', color: 'var(--gray-400)', fontStyle: 'italic', padding: '2rem', textAlign: 'center' }}>
+                           Aguardando interações...
+                         </div>
+                       ) : historico.map((h, idx) => (
+                          <div key={idx} style={{ position: 'relative', display: 'flex', gap: '1.5rem', alignItems: 'flex-start' }}>
+                             <div style={{ 
+                               position: 'relative', zIndex: 10, width: '12px', height: '12px', borderRadius: '50%', marginTop: '8px',
+                               background: h.acao === 'novo' ? 'var(--warning)' : h.acao === 'resolvido' ? 'var(--success)' : 'var(--brand-primary)',
+                               border: '2px solid var(--bg-card)'
+                             }} />
+                             
+                             <div style={{ 
+                               flex: 1, background: 'var(--bg-app)', borderRadius: '20px', padding: '1.25rem', 
+                               border: '1px solid var(--border-color)'
+                             }}>
+                                <div className="flex flex-between mb-2">
+                                   <div style={{ fontSize: '9px', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase' }}>
+                                      {h.usuario?.nome || 'SISTEMA'} • {new Date(h.criado_at).toLocaleString('pt-BR')}
+                                   </div>
+                                   {h.usuario_id === currentUserId && (
+                                     <div className="flex gap-2">
+                                        <button onClick={() => { setEditingFeedbackId(h.id); setEditingContent(h.comentario || ''); }} style={{ color: 'var(--brand-primary)' }}><PenLine size={12} /></button>
+                                        <button onClick={() => setConfirmDeleteId(h.id)} style={{ color: 'var(--danger)' }}><Trash2 size={12} /></button>
+                                     </div>
+                                   )}
                                 </div>
-                                
-                                {h.usuario_id === currentUserId && (
-                                  <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                     <button onClick={() => { setEditingFeedbackId(h.id); setEditingContent(h.comentario || ''); }} className="text-primary hover:text-primary-dark"><PenLine size={14} /></button>
-                                     <button onClick={() => handleDeleteComment(h.id)} className="text-danger hover:text-danger-dark"><Trash2 size={14} /></button>
+                                {editingFeedbackId === h.id ? (
+                                  <div className="flex flex-col gap-2 mt-2">
+                                     <textarea className="form-control text-xs" value={editingContent} onChange={e => setEditingContent(e.target.value)} />
+                                     <div className="flex gap-2 justify-end">
+                                        <button className="btn btn-xs btn-ghost" onClick={() => setEditingFeedbackId(null)}>Descartar</button>
+                                        <button className="btn btn-xs btn-primary" onClick={handleUpdateFeedback}>Salvar</button>
+                                     </div>
+                                  </div>
+                                ) : confirmDeleteId === h.id ? (
+                                  <div className="mt-2 flex items-center justify-between bg-danger-bg p-3 rounded-xl border border-danger">
+                                    <span className="text-[10px] text-danger font-bold">Remover registro?</span>
+                                    <div className="flex gap-2">
+                                      <button className="btn btn-xs btn-ghost" onClick={() => setConfirmDeleteId(null)}>Não</button>
+                                      <button className="btn btn-xs btn-primary" style={{ background: 'var(--danger)', border: 'none' }} onClick={() => handleDeleteComment(h.id)}>Sim</button>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: '1.5' }}>
+                                     {h.acao !== 'novo' && <span style={{ fontSize: '8px', padding: '1px 4px', background: 'var(--gray-200)', borderRadius: '4px', marginRight: '6px' }}>{h.acao.toUpperCase()}</span>}
+                                     {h.comentario || h.descricao}
                                   </div>
                                 )}
                              </div>
-
-                             {editingFeedbackId === h.id ? (
-                               <div className="mt-2 flex flex-col gap-2">
-                                  <textarea className="form-control text-sm w-full" value={editingContent} onChange={e => setEditingContent(e.target.value)} />
-                                  <div className="flex gap-2 justify-end">
-                                     <button className="btn btn-xs btn-ghost" onClick={() => setEditingFeedbackId(null)}>Cancelar</button>
-                                     <button className="btn btn-xs btn-primary" onClick={handleUpdateFeedback}>Salvar Alteração</button>
-                                  </div>
-                               </div>
-                             ) : (
-                               <div className="text-sm font-bold text-slate-700 leading-relaxed">
-                                  {h.acao !== 'novo' && <span className="text-[10px] px-1.5 py-0.5 bg-slate-200 rounded text-slate-600 mr-2">{h.acao.toUpperCase()}</span>}
-                                  {h.comentario || h.descricao || 'Alerta registrado pelo motor de diagnóstico.'}
-                               </div>
-                             )}
                           </div>
+                       ))}
+                    </div>
+
+                    {/* Campo de comentário rápido fixado ao fim da timeline */}
+                    <div style={{ marginTop: '2rem', paddingTop: '1.5rem', borderTop: '1px solid var(--border-color)' }}>
+                       <div className="flex gap-2">
+                          <input type="text" className="form-control flex-1" placeholder="Adicionar nota rápida..." value={comentario} onChange={e => setComentario(e.target.value)} style={{ borderRadius: '12px', height: '44px', border: '1px solid var(--border-color)', background: 'var(--bg-app)', fontSize: '0.875rem' }} />
+                          <button className="btn btn-primary" disabled={!comentario.trim() || !canEdit || loading} onClick={() => handleSave(false)} style={{ borderRadius: '12px', width: '44px', height: '44px' }}>
+                             {loading ? <RefreshCcw className="animate-spin" size={16} /> : <Send size={18} />}
+                          </button>
                        </div>
-                    ))}
-                 </div>
-              </section>
+                    </div>
+                 </section>
+
+              </div>
+
            </div>
         </main>
 
-        <footer className="modal-footer" style={{ padding: '1.5rem 2.5rem', background: 'white', borderTop: '1px solid #F1F5F9' }}>
-           <button className="btn btn-secondary btn-lg" onClick={onClose} style={{ borderRadius: '14px', border: '2px solid #F1F5F9' }}>Fechar Painel</button>
+        <footer className="modal-footer" style={{ padding: '2rem 3rem', background: 'var(--bg-card)', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '1rem', alignItems: 'center' }}>
+           <div className="flex items-center gap-3">
+              <div style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'var(--gray-100)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                 <User size={20} className="text-slate-400" />
+              </div>
+              <div>
+                 <div style={{ fontSize: '10px', fontWeight: 900, color: 'var(--gray-400)', textTransform: 'uppercase' }}>Analista Atual</div>
+                 <div style={{ fontSize: '0.875rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    {analistas.find(u => u.id === currentUserId)?.nome || 'Usuário Leve'}
+                 </div>
+              </div>
+           </div>
+           
+           <div style={{ flex: 1 }} />
+           
+           <button className="btn btn-secondary btn-lg" onClick={onClose} style={{ borderRadius: '16px', border: '2px solid var(--border-color)', color: 'var(--text-main)', padding: '0 2.5rem' }}>Cancelar</button>
            {canEdit && (
-              <button className="btn btn-primary btn-lg" onClick={handleSave} disabled={loading} style={{ borderRadius: '14px', padding: '0 2.5rem', background: '#0F172A', fontWeight: 900 }}>
-                 {loading ? <RefreshCcw className="animate-spin" size={20} /> : <Save size={20} />}
-                 {loading ? 'Sincronizando...' : 'Efetivar Tratativa'}
+              <button 
+                className="btn btn-primary btn-lg" 
+                onClick={() => handleSave(true)} 
+                disabled={loading} 
+                style={{ 
+                  borderRadius: '16px', 
+                  padding: '0 4rem', 
+                  background: 'var(--brand-secondary)', 
+                  fontWeight: 900, 
+                  boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' 
+                }}
+              >
+                 {loading ? <RefreshCcw className="animate-spin" size={22} /> : <CheckCircle2 size={24} />}
+                 {loading ? 'SINCRO...' : 'EFETIVAR TRATATIVA'}
               </button>
            )}
         </footer>
@@ -377,20 +451,19 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
 
       <style jsx>{`
         @keyframes slideDownIn {
-          from { transform: translate(-50%, -100%); opacity: 0; scale: 0.9; }
+          from { transform: translate(-50%, -120%); opacity: 0; scale: 0.9; }
           to { transform: translate(-50%, 0); opacity: 1; scale: 1; }
         }
         .card-v2 {
           border-radius: 24px;
-          border: 1px solid #F1F5F9;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .card-v2:hover {
           transform: translateY(-2px);
-          box-shadow: 0 10px 40px -10px rgba(0,0,0,0.05);
+          box-shadow: 0 15px 30px -5px rgba(0,0,0,0.05);
         }
-        .custom-scrollbar::-webkit-scrollbar { width: 8px; }
-        .custom-scrollbar::-webkit-scrollbar-thumb { background: #E2E8F0; border-radius: 10px; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--gray-200); border-radius: 10px; }
         .animate-spin { animation: spin 1s linear infinite; }
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
       `}</style>
