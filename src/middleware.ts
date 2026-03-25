@@ -6,7 +6,12 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rotas públicas
-  if (pathname.startsWith('/login') || pathname.startsWith('/api/auth')) {
+  if (
+    pathname.startsWith('/login') || 
+    pathname.startsWith('/api/auth') ||
+    pathname.includes('/agente-config') ||
+    pathname.startsWith('/api/faturamento/importar-movimentos')
+  ) {
     if (session && pathname === '/login') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
     }

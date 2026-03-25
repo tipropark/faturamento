@@ -56,3 +56,8 @@ deploy-hostinger.zip
 # deploy specifics
 deploy-hostinger/.next/
 deploy-hostinger/node_modules/
+
+
+.env
+.env.local
+.env.production
