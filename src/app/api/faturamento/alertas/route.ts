@@ -29,33 +29,18 @@ export const GET = withAudit(async (req, session) => {
     return NextResponse.json(history || []);
   }
 
-  // REAL-TIME AUTO-TRIGGER: Se for listagem geral, roda o motor para todas as operações que têm metas no mês
-  if (mode === 'list') {
-    const engine = new FaturamentoAlertEngine();
-    const now = new Date();
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
-    const today = now.toISOString().split('T')[0];
-    
-    // 1. Buscar quais IDs de operação têm metas neste mês (independente de status para diagnóstico pleno)
-    const { data: metasNoMes } = await supabase
-      .from('metas_faturamento')
-      .select('operacao_id')
-      .eq('ano', now.getFullYear())
-      .eq('mes', now.getMonth() + 1);
+  // DESATIVADO: REAL-TIME AUTO-TRIGGER: Não rodamos mais o motor na abertura da tela por performance.
+  // Em vez disso, a tela lerá os alertas já processados pelo Job periódio (src/app/api/faturamento/alertas/processar/route.ts)
+  
+  if (mode === 'status') {
+    const { data: status } = await supabase
+      .from('faturamento_alertas_v2_status')
+      .select('*')
+      .order('ultima_execucao', { ascending: false })
+      .limit(1)
+      .single();
 
-    const opIds = Array.from(new Set(metasNoMes?.map(m => m.operacao_id).filter(Boolean) || []));
-
-    // 2. Disparar Varredura Proativa (Se houver operacaoId fixo, foca nele, se não, faz o varrido geral)
-    if (operacaoId) {
-       await engine.avaliarPeriodo(operacaoId, startOfMonth, today);
-    } else if (opIds.length > 0) {
-       // Aumentamos para os últimos 7 dias para pegar a regra de QUEDA_BRUSCA
-       const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0];
-       const rangeStart = sevenDaysAgo > startOfMonth ? sevenDaysAgo : startOfMonth;
-       
-       // Processamento em lote (limitado para performance)
-       await Promise.all(opIds.slice(0, 20).map(id => engine.avaliarPeriodo(id, rangeStart, today)));
-    }
+    return NextResponse.json(status || { ultima_execucao: null, status_execucao: 'pendente' });
   }
 
   if (mode === 'trigger' && operacaoId) {

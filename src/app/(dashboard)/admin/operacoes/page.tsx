@@ -50,6 +50,8 @@ const emptyForm = {
   usa_query_customizada: false,
   ponto_bat: '',
   script_coleta: '',
+  token_integracao: '',
+  integracao_faturamento_ativa: false,
   // Campos técnicos/legados para compatibilidade
   id_legado: null,
   slug: '',
@@ -168,6 +170,8 @@ export default function AdminOperacoesPage() {
         script_coleta: op.operacoes_automacao?.[0]?.script_coleta || op.script_coleta || '',
         sql_server: op.operacoes_automacao?.[0]?.sql_server || op.sql_server || '',
         sql_database: op.operacoes_automacao?.[0]?.sql_database || op.sql_database || '',
+        token_integracao: op.token_integracao || '',
+        integracao_faturamento_ativa: !!op.integracao_faturamento_ativa
       });
       console.log('DEBUG: Operação carregada no modal:', op.id, {
         sync_db: op.operacoes_automacao?.[0]?.habilitar_faturamento,
@@ -781,7 +785,7 @@ export default function AdminOperacoesPage() {
 
                           {/* Seção API / Templates */}
                           {formData.integracao_faturamento_tipo === 'api_agent' && (
-                              <div className="mb-6 p-4" style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--gray-200)', boxShadow: 'var(--shadow-sm)' }}>
+                            <div className="mb-6 p-4" style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--gray-200)', boxShadow: 'var(--shadow-sm)' }}>
                                 <div className="form-grid form-grid-2">
                                     <div className="form-group">
                                         <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -802,6 +806,7 @@ export default function AdminOperacoesPage() {
                                             ))}
                                         </select>
                                     </div>
+
                                     <div className="form-group">
                                         <label className="form-label">Modo da Query</label>
                                         <select className="form-control" value={formData.usa_query_customizada ? 'custom' : 'template'} onChange={e => setFormData(p => ({ ...p, usa_query_customizada: e.target.value === 'custom' }))} disabled={!temPermissaoEdicao}>
@@ -809,7 +814,69 @@ export default function AdminOperacoesPage() {
                                             <option value="custom">Hardcoded (Não recomendado)</option>
                                         </select>
                                     </div>
+
+                                    {/* SEÇÃO: CREDENCIAIS API CENTRALIZADA */}
+                                    <div className="form-group span-2" style={{ marginTop: '1rem', padding: '1.25rem', background: '#F0F4FF', borderRadius: '12px', border: '1px solid #C3DAFE' }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+                                            <ShieldCheck size={18} color="#2563EB" />
+                                            <span style={{ fontWeight: 800, fontSize: '0.875rem', color: '#1E3A8A' }}>Configuração de API Manual Centralizada</span>
+                                        </div>
+
+                                        <div className="form-grid form-grid-2">
+                                            <div className="form-group">
+                                                <label className="form-label" style={{ color: '#4B5563', fontSize: '0.7rem' }}>URL DA API CENTRAL</label>
+                                                <div className="flex bg-white rounded-lg border border-blue-200 overflow-hidden shadow-sm">
+                                                    <input 
+                                                        className="form-control" 
+                                                        readOnly 
+                                                        value={typeof window !== 'undefined' ? `${window.location.origin}/api/faturamento/importar-movimentos` : ''} 
+                                                        style={{ border: 'none', background: 'transparent', fontSize: '0.75rem', height: '36px' }}
+                                                    />
+                                                    <button 
+                                                        className="px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border-l"
+                                                        onClick={() => {
+                                                            const url = `${window.location.origin}/api/faturamento/importar-movimentos`;
+                                                            navigator.clipboard.writeText(url);
+                                                            alert('URL copiada!');
+                                                        }}
+                                                    >
+                                                        <Download size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+
+                                            <div className="form-group">
+                                                <label className="form-label" style={{ color: '#4B5563', fontSize: '0.7rem' }}>TOKEN DE INTEGRAÇÃO (ÚNICO)</label>
+                                                <div className="flex bg-white rounded-lg border border-blue-200 overflow-hidden shadow-sm">
+                                                    <input 
+                                                        className="form-control" 
+                                                        readOnly 
+                                                        value={formData.token_integracao || 'GERANDO...'} 
+                                                        style={{ border: 'none', background: 'transparent', fontSize: '0.8rem', fontWeight: 600, color: '#2563EB', height: '36px' }}
+                                                    />
+                                                    <button 
+                                                        className="px-3 bg-blue-50 text-blue-600 hover:bg-blue-100 transition-colors border-l"
+                                                        onClick={() => {
+                                                            if (formData.token_integracao) {
+                                                                navigator.clipboard.writeText(formData.token_integracao);
+                                                                alert('Token copiado!');
+                                                            }
+                                                        }}
+                                                    >
+                                                        <ShieldCheck size={14} />
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        
+                                        <div style={{ marginTop: '1rem', padding: '0.75rem', background: 'rgba(255,255,255,0.5)', borderRadius: '8px', border: '1px dashed #A5B4FC' }}>
+                                            <p style={{ fontSize: '0.7rem', color: '#475569', margin: 0, display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                <AlertCircle size={14} /> Esta operação deve enviar o `x-operacao-id` e o `x-integration-token` nos headers.
+                                            </p>
+                                        </div>
+                                    </div>
                                 </div>
+
                                 <div className="form-group mt-4">
                                     <label className="form-label">Parâmetros de Ajuste (JSON)</label>
                                     <textarea 
@@ -836,7 +903,7 @@ export default function AdminOperacoesPage() {
                                     />
                                     <p style={{ fontSize: '0.65rem', color: 'var(--gray-500)', marginTop: '4px' }}>Substituirão os placeholders do template (ex: {"{"}tabela{"}"}).</p>
                                 </div>
-                              </div>
+                            </div>
                           )}
 
                           <div className="mt-4" style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px dashed var(--gray-300)' }}>

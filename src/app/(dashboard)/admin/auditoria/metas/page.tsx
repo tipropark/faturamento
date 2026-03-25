@@ -21,26 +21,30 @@ export default function AuditoriaMetasPage() {
   const [selectedAlerta, setSelectedAlerta] = useState<any>(null);
   const [userProfile, setUserProfile] = useState<string>('operador');
   const [userId, setUserId] = useState<string>('');
+  const [jobStatus, setJobStatus] = useState<any>(null);
 
   const fetchDados = useCallback(async () => {
     try {
       setLoading(true);
-      const [opsRes, alertsRes, profileRes] = await Promise.all([
+      const [opsRes, alertsRes, profileRes, jobRes] = await Promise.all([
         fetch('/api/operacoes?status=ativa'),
         fetch('/api/faturamento/alertas'),
-        fetch('/api/auth/profile')
+        fetch('/api/auth/profile'),
+        fetch('/api/faturamento/alertas?mode=status')
       ]);
-
-      const [ops, alerts, profile] = await Promise.all([
+      
+      const [ops, alerts, profile, job] = await Promise.all([
         opsRes.json(),
         alertsRes.json(),
-        profileRes.json()
+        profileRes.json(),
+        jobRes.json()
       ]);
 
       setOperacoes(Array.isArray(ops) ? ops : []);
       setAlertas(Array.isArray(alerts) ? alerts : []);
       setUserProfile(profile?.funcao || 'operador');
       setUserId(profile?.id || '');
+      setJobStatus(job);
     } catch (error) {
       console.error('Erro ao buscar dados:', error);
     } finally {
@@ -147,6 +151,14 @@ export default function AuditoriaMetasPage() {
              <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#94A3B8' }}>V2.2.0</span>
           </div>
           <h1 style={{ fontSize: '1.6rem', fontWeight: 900, color: '#0F172A', marginTop: '0.2rem', letterSpacing: '-1px' }}>Central de Auditoria</h1>
+          {jobStatus?.ultima_execucao && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '0.2rem' }}>
+              <RefreshCcw size={12} style={{ color: '#94A3B8' }} />
+              <span style={{ fontSize: '0.7rem', fontWeight: 600, color: '#94A3B8' }}> 
+                Última atualização: {new Date(jobStatus.ultima_execucao).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}
+              </span>
+            </div>
+          )}
         </div>
 
         <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>

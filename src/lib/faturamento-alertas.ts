@@ -111,7 +111,9 @@ export class FaturamentoAlertEngine {
             resumo: resultado.resumo,
             detalhes: resultado.detalhes,
             suprimido: resultado.deveSuprimir,
-            motivo_supressao: resultado.motivoSupressao
+            motivo_supressao: resultado.motivoSupressao,
+            tipo_alerta: regra.codigo,
+            expira_em: new Date(Date.now() + 6 * 3600000).toISOString(), // Válido por 6h por padrão
           });
         }
       }
@@ -125,6 +127,71 @@ export class FaturamentoAlertEngine {
     }
 
     return alertasGerados;
+  }
+
+  /**
+   * Execução em Lote para Rotina Agendada (Job)
+   */
+  async processarJobGlobal() {
+    const jobStart = new Date();
+    let totalAlertas = 0;
+    let opsSuccess = 0;
+    let errors = [];
+
+    try {
+      // 1. Marcar Início no log
+      await supabase.from('faturamento_alertas_v2_status').insert({
+        status_execucao: 'em_processamento',
+        ultima_execucao: jobStart.toISOString()
+      });
+
+      // 2. Buscar Operações Com Metas Ativas neste mês
+      const now = new Date();
+      const { data: metas } = await supabase
+        .from('metas_faturamento')
+        .select('operacao_id')
+        .eq('ano', now.getFullYear())
+        .eq('mes', now.getMonth() + 1);
+
+      const opIds = Array.from(new Set(metas?.map(m => m.operacao_id).filter(Boolean) || []));
+      
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+      const today = now.toISOString().split('T')[0];
+      const sevenDaysAgo = new Date(now.getTime() - 7 * 86400000).toISOString().split('T')[0];
+      const rangeStart = sevenDaysAgo > startOfMonth ? sevenDaysAgo : startOfMonth;
+
+      // 3. Processar em lotes controlados
+      for (const id of opIds) {
+        try {
+          const gerados = await this.avaliarPeriodo(id, rangeStart, today);
+          totalAlertas += gerados.length;
+          opsSuccess++;
+        } catch (e: any) {
+          errors.push(`Erro na Op ${id}: ${e.message}`);
+        }
+      }
+
+      // 4. Finalizar e Salvar Status
+      const { data: lastStatus } = await supabase
+        .from('faturamento_alertas_v2_status')
+        .select('id')
+        .order('ultima_execucao', { ascending: false })
+        .limit(1)
+        .single();
+
+      await supabase.from('faturamento_alertas_v2_status').upsert({
+         id: lastStatus?.id,
+         status_execucao: errors.length > 0 ? 'parcial' : 'sucesso',
+         quantidade_processada: totalAlertas,
+         ultima_execucao: new Date().toISOString(),
+         erros: errors.join('\n')
+      });
+
+      return { success: true, totalAlertas, opsSuccess, errors };
+    } catch (e: any) {
+      console.error("Erro crítico no Job:", e);
+      return { success: false, error: e.message };
+    }
   }
 
   private checkDiaOperacional(cal: any, dia: number): boolean {

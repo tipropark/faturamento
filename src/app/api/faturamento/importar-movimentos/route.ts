@@ -11,21 +11,29 @@ export async function POST(req: NextRequest) {
   
   try {
     const body = await req.json();
-    const { operacao_id, movimentos } = body;
+    const { movimentos } = body;
+    
+    // 1. Extrair ID da Operação e Token dos Headers (ou body como fallback se necessário)
+    const operacao_id = req.headers.get('x-operacao-id') || body.operacao_id;
+    const token = req.headers.get('x-integration-token') || body.token_integracao;
 
-    if (!operacao_id || !Array.isArray(movimentos)) {
-      return NextResponse.json({ error: 'Payload inválido: operacao_id e movimentos são obrigatórios' }, { status: 400 });
+    if (!operacao_id || !token || !Array.isArray(movimentos)) {
+      return NextResponse.json({ 
+        error: 'Payload inválido: x-operacao-id, x-integration-token e movimentos são obrigatórios' 
+      }, { status: 400 });
     }
 
-    // 1. Validar operação e tipo de integração
+    // 2. Validar operação e token_integracao
     const { data: op, error: opError } = await supabase
       .from('operacoes')
-      .select('id, nome_operacao, integracao_faturamento_tipo, automacao_sistema')
+      .select('id, nome_operacao, integracao_faturamento_tipo, automacao_sistema, token_integracao')
       .eq('id', operacao_id)
+      .eq('token_integracao', token)
       .single();
 
     if (opError || !op) {
-      return NextResponse.json({ error: 'Operação não encontrada' }, { status: 404 });
+      console.warn(`AUTH_INTEGRACAO_FAIL: Op: ${operacao_id} | Token: ${token ? 'PROVIDED' : 'MISSING'}`);
+      return NextResponse.json({ error: 'Operação não encontrada ou Token inválido' }, { status: 401 });
     }
 
     console.log(`IMPORT_FAT: Recebendo ${movimentos.length} movimentos para Op: ${op.nome_operacao}`);

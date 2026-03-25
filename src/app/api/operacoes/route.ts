@@ -76,7 +76,8 @@ export const POST = withAudit(async (req, session) => {
       ponto_bat,
       script_coleta,
       sql_server,
-      sql_database
+      sql_database,
+      token_integracao: operacaoData.token_integracao || crypto.randomUUID()
     })
     .select()
     .single();
