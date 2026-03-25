@@ -93,7 +93,16 @@ pause
   }
 
   // Nome do arquivo do agente baseado no sistema e arquitetura
-  const agentFile = `agente_${sistema.toLowerCase()}_${arquitetura}.ps1`;
+  let agentFile = `agente_${sistema.toLowerCase()}_${arquitetura}.ps1`;
+  
+  // Se for Novo Modelo (API) para o sistema PERSONAL, usamos o script universal
+  if (op.integracao_faturamento_tipo === 'api_agent' && sistema === 'PERSONAL') {
+    agentFile = `agente_personal_api_x86.ps1`;
+  }
+
+  // Definir URL Base da API (Priorizando a informada pelo usuario)
+  const host = req.headers.get('host') || 'hub.levemobilidade.com.br';
+  const apiBaseUrl = host.includes('localhost') ? `http://${host}` : 'http://hub.levemobilidade.com.br';
 
   const batContent = `@echo off
 chcp 65001 >nul
@@ -113,6 +122,7 @@ set "LOCAL_SERVER=${auto?.sql_server || op.sql_server || 'localhost'}"
 set "LOCAL_DATABASE=${defaultDb}"
 set "SQL_USER=${auto?.sql_user || 'SYSDBA'}"
 set "SQL_PASSWORD=${auto?.sql_password || 'masterkey'}"
+set "API_BASE_URL=${apiBaseUrl}"
 
 :: 2. Selecao da Arquitetura do PowerShell
 set "PS_CMD=powershell.exe"
@@ -130,7 +140,7 @@ if not exist "%~dp0${agentFile}" (
 )
 
 :: 4. Execucao
-"%PS_CMD%" -ExecutionPolicy Bypass -File "%~dp0${agentFile}" -OperationID "%OPERATION_ID%" -AgentID "%AGENT_ID%" -LocalServer "%LOCAL_SERVER%" -LocalDatabase "%LOCAL_DATABASE%" -SqlUser "%SQL_USER%" -SqlPassword "%SQL_PASSWORD%"
+"%PS_CMD%" -ExecutionPolicy Bypass -File "%~dp0${agentFile}" -OperationID "%OPERATION_ID%" -AgentID "%AGENT_ID%" -LocalServer "%LOCAL_SERVER%" -LocalDatabase "%LOCAL_DATABASE%" -SqlUser "%SQL_USER%" -SqlPassword "%SQL_PASSWORD%" -ApiBaseUrl "%API_BASE_URL%"
 
 if %ERRORLEVEL% NEQ 0 (
     echo.
