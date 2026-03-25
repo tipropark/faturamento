@@ -14,6 +14,7 @@ export async function GET(
     .from('operacoes')
     .select(`
       *, 
+      query_template:faturamento_query_templates(*),
       operacoes_automacao(
         automacao_id,
         arquitetura,
@@ -27,17 +28,41 @@ export async function GET(
     .single();
 
   if (error || !op) {
-    if (error) console.error('AGENT_CONFIG_ERROR:', error);
+    if (error) {
+        console.error('AGENT_CONFIG_DB_ERROR:', error.message, error.details);
+        return NextResponse.json({ error: `Erro no banco: ${error.message}` }, { status: 500 });
+    }
     return NextResponse.json({ error: 'Operação não encontrada' }, { status: 404 });
   }
 
   const auto = op.operacoes_automacao?.[0];
   const sistema = (auto?.sistema?.nome || op.automacao_sistema || '').toString().toUpperCase().trim();
   const arquitetura = (auto?.arquitetura || op.automacao_arquitetura || '').toString().trim();
+  const defaultDb = sistema === 'PERSONAL' && (!auto?.sql_database && op.sql_database === 'SGP' || !op.sql_database) 
+    ? 'C:\\SgpWin\\SGP.FDB' 
+    : (auto?.sql_database || op.sql_database || 'SGP');
   
-  console.log(`DEBUG: Gerando script para Op: ${id}, Sistema: [${sistema}], Arq: [${arquitetura}]`);
+  console.log(`DEBUG: Config Agent para Op: ${id}, Sistema: [${sistema}], Arq: [${arquitetura}], Tipo: [${op.integracao_faturamento_tipo}]`);
 
-  // Validação de Sistemas Homologados
+  // Suporte a JSON para o Novo Agente
+  const isJson = req.headers.get('accept')?.includes('application/json') || req.nextUrl.searchParams.get('format') === 'json';
+  if (isJson) {
+    return NextResponse.json({
+        id: op.id,
+        nome: op.nome_operacao,
+        integracao_faturamento_tipo: op.integracao_faturamento_tipo || 'legado_direto',
+        automacao_sistema: sistema,
+        sql_server: auto?.sql_server || op.sql_server || 'localhost',
+        sql_database: defaultDb,
+        sql_user: auto?.sql_user || 'SYSDBA',
+        sql_password: auto?.sql_password || 'masterkey',
+        query_template: op.query_template || null,
+        parametros_query: op.parametros_query || {},
+        usa_query_customizada: op.usa_query_customizada || false
+    });
+  }
+
+  // Validação de Sistemas Homologados (Apenas para o BAT Legado)
   const sistemasHomologados = ['PARCO', 'PERSONAL'];
   if (!sistemasHomologados.includes(sistema) || !arquitetura) {
     const errorMsg = `@echo off
@@ -69,18 +94,15 @@ pause
 
   // Nome do arquivo do agente baseado no sistema e arquitetura
   const agentFile = `agente_${sistema.toLowerCase()}_${arquitetura}.ps1`;
-// 2. Configurações de Conexão
-const defaultDb = sistema === 'PERSONAL' && (!auto?.sql_database && op.sql_database === 'SGP' || !op.sql_database) 
-  ? 'C:\\SgpWin\\SGP.FDB' 
-  : (auto?.sql_database || op.sql_database || 'SGP');
 
-const batContent = `@echo off
+  const batContent = `@echo off
 chcp 65001 >nul
 setlocal
 
 echo ============================================================
 echo   LEVE ERP - INICIANDO AGENTE: ${op.nome_operacao}
 echo   SISTEMA: ${sistema} - ARQUITETURA: ${arquitetura}
+echo   TIPO: ${op.integracao_faturamento_tipo || 'LEGADO'}
 echo ============================================================
 echo.
 

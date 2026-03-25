@@ -14,6 +14,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
       *, 
       supervisor:usuarios!supervisor_id(id, nome),
       gerente:usuarios!gerente_operacoes_id(id, nome),
+      query_template:faturamento_query_templates(*),
       operacoes_automacao(
         automacao_id,
         arquitetura,
@@ -59,10 +60,12 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     habilitar_faturamento, ponto_bat, script_coleta,
     operacoes_automacao, automacao,
     sql_server, sql_database,
+    // Novos campos de faturamento
+    integracao_faturamento_tipo, query_template_id, parametros_query, usa_query_customizada,
     ...operacaoData 
   } = body;
 
-  // Atualizar a tabela principal (mantendo redundância para compatibilidade se existirem as colunas)
+  // Atualizar a tabela principal
   const { data, error } = await supabase
     .from('operacoes')
     .update({ 
@@ -74,13 +77,20 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       ponto_bat,
       script_coleta,
       sql_server,
-      sql_database
+      sql_database,
+      integracao_faturamento_tipo: integracao_faturamento_tipo || 'legado_direto',
+      query_template_id: query_template_id || null,
+      parametros_query: parametros_query || {},
+      usa_query_customizada: !!usa_query_customizada
     })
     .eq('id', id)
     .select()
     .single();
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  if (error) {
+    console.error('PUT_OPERACAO_ERROR:', error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
 
   // Buscar ID do sistema no catálogo pelo nome (se fornecido)
   let automacao_id = null;
@@ -128,13 +138,14 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     return NextResponse.json({ error: 'Erro ao salvar configuração de automação: ' + autoError.message }, { status: 500 });
   }
 
-  // Buscar dados atualizados COMPLETOS (com joins) para o frontend
+  // Buscar dados atualizados COMPLETOS (com joins)
   const { data: updatedOp, error: fetchError } = await supabase
     .from('operacoes')
     .select(`
       *, 
       supervisor:usuarios!supervisor_id(id, nome),
       gerente:usuarios!gerente_operacoes_id(id, nome),
+      query_template:faturamento_query_templates(*),
       operacoes_automacao(
         id,
         automacao_id,

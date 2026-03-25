@@ -44,6 +44,10 @@ const emptyForm = {
   automacao_sistema: '',
   automacao_arquitetura: '', // x86 ou x64
   habilitar_faturamento: false,
+  integracao_faturamento_tipo: 'legado_direto',
+  query_template_id: '',
+  parametros_query: {} as any,
+  usa_query_customizada: false,
   ponto_bat: '',
   script_coleta: '',
   // Campos técnicos/legados para compatibilidade
@@ -61,6 +65,7 @@ export default function AdminOperacoesPage() {
   const [supervisores, setSupervisores] = useState<any[]>([]);
   const [gerentes, setGerentes] = useState<any[]>([]);
   const [automacoes, setAutomacoes] = useState<any[]>([]);
+  const [templates, setTemplates] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [editando, setEditando] = useState<any>(null);
@@ -72,22 +77,34 @@ export default function AdminOperacoesPage() {
 
   const carregar = useCallback(async () => {
     setLoading(true);
-    const [opsRes, supsRes, gerRes, autRes, sessionRes] = await Promise.all([
+    const [opsRes, supsRes, gerRes, autRes, tempRes, sessionRes] = await Promise.all([
       fetch('/api/operacoes').then(r => r.json()),
       fetch('/api/usuarios?perfil=supervisor').then(r => r.json()),
       fetch('/api/usuarios?perfil=gerente_operacoes').then(r => r.json()),
       fetch('/api/automacoes').then(r => r.json()),
+      fetch('/api/faturamento/templates').then(r => r.json()), // Vou precisar criar este endpoint ou usar um genérico
       fetch('/api/auth/session').then(r => r.json())
     ]);
     setOperacoes(Array.isArray(opsRes) ? opsRes : []);
     setSupervisores(Array.isArray(supsRes) ? supsRes : []);
     setGerentes(Array.isArray(gerRes) ? gerRes : []);
     setAutomacoes(Array.isArray(autRes) ? autRes : []);
+    setTemplates(Array.isArray(tempRes) ? tempRes : []);
     setPerfilUsuario(sessionRes?.user?.perfil || '');
     setLoading(false);
   }, []);
 
   useEffect(() => { carregar(); }, [carregar]);
+
+  // Carregar parâmetros padrão ao selecionar um template
+  useEffect(() => {
+    if (formData.query_template_id && templates.length > 0) {
+      const template = templates.find(t => t.id === formData.query_template_id);
+      if (template && (!formData.parametros_query || Object.keys(formData.parametros_query).length === 0)) {
+        setFormData(prev => ({ ...prev, parametros_query: template.exemplo_parametros || {} }));
+      }
+    }
+  }, [formData.query_template_id, templates]);
 
   const calcScore = (data: any) => {
     let filled = 0, totalFields = 28;
@@ -141,6 +158,10 @@ export default function AdminOperacoesPage() {
         evidencia_alteracoes: op.evidencia_alteracoes || '',
         data_encerramento: op.data_encerramento || '',
         habilitar_faturamento: !!(op.operacoes_automacao?.[0]?.habilitar_faturamento || op.habilitar_faturamento),
+        integracao_faturamento_tipo: op.integracao_faturamento_tipo || 'legado_direto',
+        query_template_id: op.query_template_id || '',
+        parametros_query: op.parametros_query || {},
+        usa_query_customizada: op.usa_query_customizada || false,
         automacao_sistema: op.operacoes_automacao?.[0]?.sistema?.nome || op.automacao_sistema || '',
         automacao_arquitetura: op.operacoes_automacao?.[0]?.arquitetura || op.automacao_arquitetura || '',
         ponto_bat: op.operacoes_automacao?.[0]?.ponto_bat || op.ponto_bat || '',
@@ -150,7 +171,8 @@ export default function AdminOperacoesPage() {
       });
       console.log('DEBUG: Operação carregada no modal:', op.id, {
         sync_db: op.operacoes_automacao?.[0]?.habilitar_faturamento,
-        sync_legado: op.habilitar_faturamento
+        sync_legado: op.habilitar_faturamento,
+        tipo: op.integracao_faturamento_tipo
       });
     } else {
       setEditando(null);
@@ -660,59 +682,75 @@ export default function AdminOperacoesPage() {
               {/* ABA: Automação */}
               {activeTab === 'automacao' && (
                 <div className="form-section">
-                   <div style={{ marginBottom: '2.5rem', padding: '2rem', background: 'var(--brand-primary-light)', borderRadius: '16px', border: '1px solid var(--brand-primary-opacity)', boxShadow: 'inset 0 2px 4px rgba(39,47,92,0.05)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
-                      <div style={{ background: 'white', padding: '0.75rem', borderRadius: '12px', boxShadow: 'var(--shadow-sm)' }}>
-                        <Cpu size={28} color="var(--brand-primary)" />
+                   <div style={{ marginBottom: '2rem', padding: '1.5rem', background: 'var(--brand-primary-light)', borderRadius: '16px', border: '1px solid var(--brand-primary-opacity)', boxShadow: 'inset 0 2px 4px rgba(39,47,92,0.05)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                      <div style={{ background: 'white', padding: '0.5rem', borderRadius: '10px', boxShadow: 'var(--shadow-sm)' }}>
+                        <Cpu size={24} color="var(--brand-primary)" />
                       </div>
                       <div>
-                        <h4 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--brand-primary-dark)', marginBottom: '0.25rem' }}>Gestão de Automação Local</h4>
-                        <p style={{ fontSize: '0.875rem', color: 'var(--gray-600)', lineHeight: '1.5' }}>Configure os parâmetros técnicos para o agente de coleta de dados do pátio em tempo real.</p>
+                        <h4 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--brand-primary-dark)', marginBottom: '0.125rem' }}>Evolução da Automação Local</h4>
+                        <p style={{ fontSize: '0.8125rem', color: 'var(--gray-600)', lineHeight: '1.4' }}>Controle a forma como os dados são coletados e enviados para o ERP.</p>
                       </div>
                     </div>
                   </div>
 
                   <div className="form-grid form-grid-1">
-                    <div className="form-group" style={{ padding: '2rem', background: 'var(--gray-50)', borderRadius: '16px', border: '1px solid var(--gray-200)' }}>
-                      <div className="flex items-center justify-between">
+                    <div className="card-inner" style={{ padding: '1.5rem', background: 'var(--gray-50)', borderRadius: '16px', border: '1px solid var(--gray-200)' }}>
+                      <div className="flex items-center justify-between mb-6">
                         <div>
-                          <div style={{ fontWeight: 800, color: 'var(--gray-900)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                            <Wifi size={20} color="var(--brand-primary)" />
-                            Sincronização Ativa
+                          <div style={{ fontWeight: 800, color: 'var(--gray-900)', fontSize: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                            <Wifi size={18} color="var(--brand-primary)" />
+                            Integração de Faturamento Ativa
                           </div>
-                          <p style={{ fontSize: '0.85rem', color: 'var(--gray-500)', margin: '0.5rem 0 0' }}>Habilitar script de coleta automática para faturamento unificado</p>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--gray-500)', margin: '0.25rem 0 0' }}>Habilitar script de coleta automática para faturamento unificado</p>
                         </div>
                         <div 
                           className={`toggle-switch ${formData.habilitar_faturamento ? 'active' : ''}`} 
                           onClick={() => temPermissaoEdicao && setFormData(p => ({ ...p, habilitar_faturamento: !p.habilitar_faturamento }))} 
                           style={{ 
                             cursor: temPermissaoEdicao ? 'pointer' : 'not-allowed',
-                            width: '56px',
-                            height: '30px',
-                            background: formData.habilitar_faturamento ? 'var(--brand-primary)' : 'var(--gray-300)',
-                            borderRadius: '20px',
-                            position: 'relative',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                            width: '48px', height: '26px', background: formData.habilitar_faturamento ? 'var(--brand-primary)' : 'var(--gray-300)',
+                            borderRadius: '20px', position: 'relative', transition: 'all 0.3s'
                           }}
                         >
                           <div style={{ 
-                            width: '22px', 
-                            height: '22px', 
-                            background: 'white', 
-                            borderRadius: '50%', 
-                            position: 'absolute',
-                            top: '4px',
-                            left: formData.habilitar_faturamento ? '30px' : '4px',
-                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
+                            width: '20px', height: '20px', background: 'white', borderRadius: '50%', position: 'absolute',
+                            top: '3px', left: formData.habilitar_faturamento ? '25px' : '3px', transition: 'all 0.3s'
                           }} />
                         </div>
                       </div>
 
                       {formData.habilitar_faturamento && (
-                        <div style={{ marginTop: '2.5rem', paddingTop: '2.5rem', borderTop: '1px solid var(--gray-200)' }}>
+                        <div style={{ borderTop: '1px solid var(--gray-200)', paddingTop: '1.5rem' }}>
                           
-                          <div className="form-grid form-grid-2 mb-8">
+                          {/* SELETOR DE MODO */}
+                          <div className="form-group mb-6">
+                            <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                Modo de Operação 
+                                {formData.integracao_faturamento_tipo === 'legado_direto' 
+                                    ? <span className="badge badge-gray" style={{ fontSize: '0.6rem' }}>Legado</span> 
+                                    : <span className="badge badge-purple" style={{ fontSize: '0.6rem', background: '#7638FF20', color: '#7638FF' }}>✨ Novo Padrão (API)</span>
+                                }
+                            </label>
+                            <div className="flex gap-2 p-1" style={{ background: 'var(--gray-200)', borderRadius: '8px' }}>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, integracao_faturamento_tipo: 'legado_direto' }))}
+                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', ...(formData.integracao_faturamento_tipo === 'legado_direto' ? { background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--brand-primary)' } : { color: 'var(--gray-500)', border: 'none', background: 'transparent' })}}
+                                >
+                                    LEGADO (Banco Local)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, integracao_faturamento_tipo: 'api_agent' }))}
+                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', ...(formData.integracao_faturamento_tipo === 'api_agent' ? { background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--brand-primary)' } : { color: 'var(--gray-500)', border: 'none', background: 'transparent' })}}
+                                >
+                                    API (Envio Seguro)
+                                </button>
+                            </div>
+                          </div>
+
+                          <div className="form-grid form-grid-2 mb-6">
                             <div className="form-group">
                               <label className="form-label">Sistema de Automação</label>
                               <select 
@@ -721,11 +759,10 @@ export default function AdminOperacoesPage() {
                                 onChange={e => setFormData(p => ({ ...p, automacao_sistema: e.target.value }))} 
                                 disabled={!temPermissaoEdicao}
                               >
-                                <option value="">Selecione um sistema...</option>
+                                <option value="">Selecione...</option>
                                 {automacoes.map(aut => (
                                   <option key={aut.id} value={aut.nome}>{aut.nome}</option>
                                 ))}
-                                {/* Fallback/Legacy option if not in catalog */}
                                 {formData.automacao_sistema && !automacoes.find(a => a.nome === formData.automacao_sistema) && (
                                   <option value={formData.automacao_sistema}>{formData.automacao_sistema} (Legado)</option>
                                 )}
@@ -733,43 +770,91 @@ export default function AdminOperacoesPage() {
                             </div>
                             
                             <div className="form-group">
-                              <label className="form-label">Arquitetura do Servidor Local</label>
-                              <div className="flex gap-2">
-                                {[
-                                  { id: 'x86', label: 'Windows 32 bits' },
-                                  { id: 'x64', label: 'Windows 64 bits' }
-                                ].map(arq => (
-                                  <button
-                                    key={arq.id}
-                                    type="button"
-                                    onClick={() => temPermissaoEdicao && setFormData(p => ({ ...p, automacao_arquitetura: arq.id }))}
-                                    className={`btn btn-sm ${formData.automacao_arquitetura === arq.id ? 'btn-primary' : 'btn-secondary'}`}
-                                    style={{ flex: 1, height: '44px', borderRadius: '10px' }}
-                                  >
-                                    {arq.label}
-                                  </button>
-                                ))}
-                              </div>
+                              <label className="form-label">Arquitetura</label>
+                              <select className="form-control" value={formData.automacao_arquitetura || ''} onChange={e => setFormData(p => ({ ...p, automacao_arquitetura: e.target.value }))} disabled={!temPermissaoEdicao}>
+                                <option value="">Selecione...</option>
+                                <option value="x86">Windows 32 bits (SGP Legado)</option>
+                                <option value="x64">Windows 64 bits (Cloud/Local)</option>
+                              </select>
                             </div>
                           </div>
 
-                          <div className="mt-8" style={{ background: 'var(--gray-100)', padding: '2rem', borderRadius: '16px', border: '1px dashed var(--gray-300)' }}>
+                          {/* Seção API / Templates */}
+                          {formData.integracao_faturamento_tipo === 'api_agent' && (
+                              <div className="mb-6 p-4" style={{ background: 'white', borderRadius: '12px', border: '1px solid var(--gray-200)', boxShadow: 'var(--shadow-sm)' }}>
+                                <div className="form-grid form-grid-2">
+                                    <div className="form-group">
+                                        <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <Database size={14} /> Template de Consulta
+                                        </label>
+                                        <select 
+                                            className="form-control"
+                                            value={formData.query_template_id || ''}
+                                            onChange={e => setFormData(p => ({ ...p, query_template_id: e.target.value }))}
+                                            disabled={!temPermissaoEdicao}
+                                        >
+                                            <option value="">Selecione um template...</option>
+                                            {templates.filter(t => 
+                                                !formData.automacao_sistema || 
+                                                t.sistema?.toUpperCase() === formData.automacao_sistema?.toUpperCase()
+                                            ).map(t => (
+                                                <option key={t.id} value={t.id}>{t.nome}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Modo da Query</label>
+                                        <select className="form-control" value={formData.usa_query_customizada ? 'custom' : 'template'} onChange={e => setFormData(p => ({ ...p, usa_query_customizada: e.target.value === 'custom' }))} disabled={!temPermissaoEdicao}>
+                                            <option value="template">Seguir Template</option>
+                                            <option value="custom">Hardcoded (Não recomendado)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-group mt-4">
+                                    <label className="form-label">Parâmetros de Ajuste (JSON)</label>
+                                    <textarea 
+                                        className="form-control"
+                                        style={{ fontFamily: 'monospace', fontSize: '0.8rem', background: 'var(--gray-50)' }}
+                                        rows={3}
+                                        value={typeof formData.parametros_query === 'object' ? JSON.stringify(formData.parametros_query, null, 2) : formData.parametros_query}
+                                        onChange={e => {
+                                            const val = e.target.value;
+                                            setFormData(p => ({ ...p, parametros_query: val }));
+                                        }}
+                                        onBlur={e => {
+                                            try {
+                                                if (e.target.value.trim()){
+                                                    const p = JSON.parse(e.target.value);
+                                                    setFormData(prev => ({ ...prev, parametros_query: p }));
+                                                }
+                                            } catch (err) {
+                                                alert('JSON de parâmetros inválido');
+                                            }
+                                        }}
+                                        disabled={!temPermissaoEdicao}
+                                        placeholder='{ "tabela": "MOVIMENTOS", "col_valor": "VLR_TOT" }'
+                                    />
+                                    <p style={{ fontSize: '0.65rem', color: 'var(--gray-500)', marginTop: '4px' }}>Substituirão os placeholders do template (ex: {"{"}tabela{"}"}).</p>
+                                </div>
+                              </div>
+                          )}
+
+                          <div className="mt-4" style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px dashed var(--gray-300)' }}>
                             {(() => {
-                              if (!editando) return <p className="text-muted italic text-center text-sm">Salve a operação para habilitar a geração do script.</p>;
-                              if (!formData.automacao_arquitetura) return <p className="text-warning italic text-center text-sm font-bold">⚠️ Selecione uma arquitetura para baixar o script.</p>;
+                              if (!editando) return <p className="text-muted italic text-center text-xs">Salve a operação para habilitar a geração do script.</p>;
+                              if (!formData.automacao_arquitetura) return <p className="text-warning italic text-center text-xs font-bold">⚠️ Selecione uma arquitetura para baixar o bat.</p>;
                               
                               return (
                                 <div className="flex flex-col gap-4">
                                   <div className="flex items-center gap-4">
-                                    <button className="btn btn-primary" style={{ flex: 1, height: '54px', borderRadius: '14px' }} onClick={() => window.open(`/api/operacoes/${editando.id}/agente-config`, '_blank')}>
-                                      <Download size={20} /> Baixar Script de Coleta (.bat)
+                                    <button className="btn btn-primary" style={{ flex: 1, padding: '0.75rem', borderRadius: '10px' }} onClick={() => window.open(`/api/operacoes/${editando.id}/agente-config`, '_blank')}>
+                                      <Download size={18} /> Download Agent Setup (.BAT)
                                     </button>
-                                    <div style={{ flex: 1, background: 'var(--success-bg)', padding: '1rem', borderRadius: '14px', border: '1px solid var(--success)', display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-                                      <CheckCircle size={20} color="var(--success)" />
-                                      <span style={{ fontSize: '0.8rem', color: 'var(--success-dark)', fontWeight: 700 }}>Validação de Parâmetros Concluída</span>
+                                    <div style={{ flex: 1, background: 'var(--success-bg)', padding: '0.75rem', borderRadius: '10px', border: '1px solid var(--success)', display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                                      <ShieldCheck size={18} color="var(--success)" />
+                                      <span style={{ fontSize: '0.7rem', color: 'var(--success-dark)', fontWeight: 700 }}>Infraestrutura Pronta</span>
                                     </div>
                                   </div>
-                                  <p className="text-xs text-muted text-center" style={{ marginTop: '0.5rem' }}>O script sincronizará os dados com base do sistema selecionado acima.</p>
                                 </div>
                               );
                             })()}
