@@ -36,7 +36,7 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
 
   const [formData, setFormData] = useState({
-    status: alerta.status as StatusAlertaMeta || 'novo',
+    status: alerta.status as StatusAlertaMeta || 'pendente',
     analista_responsavel_id: alerta.analista_responsavel_id || '',
     justificativa: alerta.justificativa || ''
   });
@@ -44,7 +44,7 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
   // Sincroniza estado interno caso o alerta mude (por refresh do pai)
   useEffect(() => {
     setFormData({
-      status: alerta.status as StatusAlertaMeta || 'novo',
+      status: alerta.status as StatusAlertaMeta || 'pendente',
       analista_responsavel_id: alerta.analista_responsavel_id || '',
       justificativa: alerta.justificativa || ''
     });
@@ -388,7 +388,7 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
                                   </div>
                                 ) : (
                                   <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-main)', lineHeight: '1.5' }}>
-                                     {h.acao !== 'novo' && <span style={{ fontSize: '8px', padding: '1px 4px', background: 'var(--gray-200)', borderRadius: '4px', marginRight: '6px' }}>{h.acao.toUpperCase()}</span>}
+                                     {h.acao !== 'novo' && <span style={{ fontSize: '8px', padding: '1px 4px', background: 'var(--gray-200)', borderRadius: '4px', marginRight: '6px' }}>{h.acao?.toUpperCase()}</span>}
                                      {h.comentario || h.descricao}
                                   </div>
                                 )}
@@ -443,7 +443,7 @@ export default function AlertaTratativaModal({ alerta, onClose, onRefresh, canEd
                 }}
               >
                  {loading ? <RefreshCcw className="animate-spin" size={22} /> : <CheckCircle2 size={24} />}
-                 {loading ? 'SINCRO...' : 'EFETIVAR TRATATIVA'}
+                 {loading ? 'SALVANDO...' : 'EFETIVAR TRATATIVA'}
               </button>
            )}
         </footer>

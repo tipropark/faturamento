@@ -44,13 +44,16 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
   const body = await req.json();
   const supabase = await createAdminClient();
 
+  const supervisor_id = body.supervisor_id || null;
+  let gerente_operacoes_id = body.gerente_operacoes_id || null;
+  const query_template_id = body.query_template_id || null;
+
   // Atualizar gerente baseado no supervisor
-  let gerente_operacoes_id = body.gerente_operacoes_id;
-  if (body.supervisor_id) {
+  if (supervisor_id && !gerente_operacoes_id) {
     const { data: sup } = await supabase
       .from('usuarios')
       .select('gerente_operacoes_id')
-      .eq('id', body.supervisor_id)
+      .eq('id', supervisor_id)
       .single();
     if (sup) gerente_operacoes_id = sup.gerente_operacoes_id;
   }
@@ -61,7 +64,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     operacoes_automacao, automacao,
     sql_server, sql_database,
     // Novos campos de faturamento
-    integracao_faturamento_tipo, query_template_id, parametros_query, usa_query_customizada,
+    integracao_faturamento_tipo, parametros_query, usa_query_customizada,
     ...operacaoData 
   } = body;
 
@@ -70,7 +73,9 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     .from('operacoes')
     .update({ 
       ...operacaoData, 
+      supervisor_id,
       gerente_operacoes_id,
+      query_template_id,
       habilitar_faturamento,
       automacao_sistema,
       automacao_arquitetura,
@@ -79,7 +84,6 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
       sql_server,
       sql_database,
       integracao_faturamento_tipo: integracao_faturamento_tipo || 'legado_direto',
-      query_template_id: query_template_id || null,
       parametros_query: parametros_query || {},
       usa_query_customizada: !!usa_query_customizada
     })

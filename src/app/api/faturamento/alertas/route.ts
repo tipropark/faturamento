@@ -22,12 +22,22 @@ export const GET = withAudit(async (req, session) => {
       .from('faturamento_alertas_feedback')
       .select(`
         *,
-        usuario:usuarios(id, nome)
+        usuario:usuarios(nome)
       `)
       .eq('alerta_id', alertaId)
       .order('criado_at', { ascending: false });
 
-    if (errHist) return NextResponse.json({ error: errHist.message }, { status: 500 });
+    if (errHist) {
+      console.error('Erro ao buscar histórico:', errHist);
+      // Fallback caso o join falhe (falta de FK)
+      const { data: simpleHistory } = await supabase
+        .from('faturamento_alertas_feedback')
+        .select('*')
+        .eq('alerta_id', alertaId)
+        .order('criado_at', { ascending: false });
+      
+      return NextResponse.json(simpleHistory || []);
+    }
     return NextResponse.json(history || []);
   }
 
@@ -111,13 +121,20 @@ export const POST = withAudit(async (req, session) => {
 
   if (errUpdate) return NextResponse.json({ error: errUpdate.message }, { status: 500 });
 
-  // 2. Registrar no Histórico (usando a tabela existente de feedback como histórico)
-  await supabase.from('faturamento_alertas_feedback').insert({
+  // 2. Registrar no Histórico
+  const { error: errHist } = await supabase.from('faturamento_alertas_feedback').insert({
     alerta_id,
     usuario_id: userId,
     acao,
     comentario: body.comentario_adicional || comentario
   });
+
+  if (errHist) {
+    console.error('Erro ao salvar feedback:', errHist);
+    // Mesmo com erro no histórico, o alerta principal foi atualizado. 
+    // Reportamos erro para diagnóstico.
+    return NextResponse.json({ error: 'Erro ao registrar histórico: ' + errHist.message }, { status: 500 });
+  }
 
   return NextResponse.json({ success: true });
 });

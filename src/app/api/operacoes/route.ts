@@ -7,23 +7,22 @@ export const GET = withAudit(async (req, session) => {
   const supabase = await getAuditedClient(userId);
   const { searchParams } = new URL(req.url);
   const status = searchParams.get('status');
+  const id = searchParams.get('id');
 
   let query = supabase
     .from('operacoes')
     .select(`
       *,
       supervisor:usuarios!supervisor_id(id, nome),
-      gerente:usuarios!gerente_operacoes_id(id, nome),
-      operacoes_automacao(
-        habilitar_faturamento,
-        automacao_id,
-        arquitetura,
-        ponto_bat,
-        script_coleta,
-        sistema:automacoes_catalogo(nome)
-      )
+      gerente:usuarios!gerente_operacoes_id(id, nome)
     `)
     .order('nome_operacao');
+
+  if (id) {
+    const { data, error } = await query.eq('id', id).single();
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json(data);
+  }
 
   if (status) query = query.eq('status', status);
 
@@ -47,12 +46,15 @@ export const POST = withAudit(async (req, session) => {
   const body = await req.json();
   const supabase = await getAuditedClient(session.user.id);
 
-  let gerente_operacoes_id = body.gerente_operacoes_id;
-  if (body.supervisor_id && !gerente_operacoes_id) {
+  let gerente_operacoes_id = body.gerente_operacoes_id || null;
+  const supervisor_id = body.supervisor_id || null;
+  const query_template_id = body.query_template_id || null;
+
+  if (supervisor_id && !gerente_operacoes_id) {
     const { data: sup } = await supabase
       .from('usuarios')
       .select('gerente_operacoes_id')
-      .eq('id', body.supervisor_id)
+      .eq('id', supervisor_id)
       .single();
     if (sup) gerente_operacoes_id = sup.gerente_operacoes_id;
   }
@@ -62,6 +64,7 @@ export const POST = withAudit(async (req, session) => {
     habilitar_faturamento, ponto_bat, script_coleta,
     operacoes_automacao, automacao,
     sql_server, sql_database,
+    // Remover campos que serão tratados separadamente ou que não pertencem à tabela operacoes
     ...operacaoData 
   } = body;
 
@@ -69,7 +72,9 @@ export const POST = withAudit(async (req, session) => {
     .from('operacoes')
     .insert({ 
       ...operacaoData, 
+      supervisor_id,
       gerente_operacoes_id,
+      query_template_id,
       habilitar_faturamento,
       automacao_sistema,
       automacao_arquitetura,

@@ -79,7 +79,7 @@ export type StatusDiarioMeta =
   | 'sem_dados';
 
 export type ConfiancaApuracao = 'alta' | 'media' | 'baixa';
-export type StatusAlertaMeta = 'novo' | 'em_analise' | 'justificado' | 'resolvido' | 'descartado';
+export type StatusAlertaMeta = 'pendente' | 'em_analise' | 'justificado' | 'resolvido' | 'descartado';
 export type CriticidadeAlertaMeta = 'baixa' | 'media' | 'alta' | 'critica';
 export type StatusTratativaAlerta = 'pendente' | 'em_analise' | 'concluida' | 'sem_procedencia';
 export type CategoriaCausaMeta = 'queda_movimento' | 'despesa_elevada' | 'falha_sincronizacao' | 'inconsistencia_dados' | 'erro_operacional' | 'outros';
@@ -530,7 +530,7 @@ export const CONFIANCA_APURACAO_LABELS: Record<ConfiancaApuracao, string> = {
 };
 
 export const STATUS_ALERTA_META_LABELS: Record<StatusAlertaMeta, string> = {
-  novo: 'Novo',
+  pendente: 'Pendente',
   em_analise: 'Em Análise',
   justificado: 'Justificado',
   resolvido: 'Resolvido',

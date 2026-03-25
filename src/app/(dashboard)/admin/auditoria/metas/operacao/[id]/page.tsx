@@ -1,10 +1,12 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
   ArrowLeft, RefreshCcw, AlertTriangle, CheckCircle2, 
-  PenLine, Info, Calendar, Target, Activity, Search, Filter, ChevronRight
+  PenLine, Info, Calendar, Target, Activity, Search, Filter, 
+  ChevronRight, Clock, FileText, CheckCircle, ShieldAlert,
+  ArrowRightCircle, ListTodo
 } from 'lucide-react';
 import { 
   StatusAlertaMeta, STATUS_ALERTA_META_LABELS 
@@ -70,142 +72,228 @@ export default function OperationAlertsPage({ params }: { params: Promise<{ id: 
 
   const getStatusColor = (status: string) => {
     switch(status) {
-      case 'novo': return '#F97316';
-      case 'em_analise': return '#3B82F6';
-      case 'resolvido': return '#22C55E';
-      default: return '#94A3B8';
+      case 'novo':
+      case 'pendente': return 'var(--warning)';
+      case 'em_analise': return 'var(--brand-primary)';
+      case 'justificado': return 'var(--brand-primary)';
+      case 'resolvido': return 'var(--success)';
+      case 'descartado': return 'var(--gray-400)';
+      default: return 'var(--gray-400)';
     }
   };
 
+  // Agrupamento de Alertas por Status para a Listagem (Resiliente a nomes do DB)
+  const groupedAlerts = useMemo(() => {
+    return {
+      pendentes: alertas.filter(a => a.status === 'novo' || a.status === 'pendente'),
+      emTratativa: alertas.filter(a => a.status === 'em_analise' || a.status === 'justificado'),
+      concluidos: alertas.filter(a => a.status === 'resolvido' || a.status === 'descartado')
+    };
+  }, [alertas]);
+
+  const stats = useMemo(() => ({
+    total: alertas.length,
+    pendentes: groupedAlerts.pendentes.length,
+    emTratativa: groupedAlerts.emTratativa.length,
+    concluidos: groupedAlerts.concluidos.length
+  }), [alertas.length, groupedAlerts]);
+
+  const renderAlertTable = (sectionAlerts: any[], title: string, icon: React.ReactNode, color: string) => {
+    if (sectionAlerts.length === 0) return null;
+
+    return (
+      <div style={{ marginBottom: '1.5rem' }}>
+        <div style={{ 
+          display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem', 
+          paddingBottom: '0.5rem', borderBottom: `1px solid var(--gray-100)` 
+        }}>
+          <div style={{ 
+            width: '28px', height: '28px', borderRadius: '6px', 
+            background: color, color: 'white', display: 'flex', 
+            alignItems: 'center', justifyContent: 'center' 
+          }}>
+            {icon}
+          </div>
+          <h3 style={{ fontSize: '1rem', fontWeight: 800, color: 'var(--gray-900)' }}>
+            {title} ({sectionAlerts.length})
+          </h3>
+        </div>
+
+        <div className="table-responsive">
+          <table className="table">
+            <thead>
+              <tr>
+                <th style={{ width: '180px' }}>Data Ref.</th>
+                <th>Diagnóstico / Ocorrência</th>
+                <th style={{ textAlign: 'center' }}>Severidade</th>
+                <th style={{ textAlign: 'center' }}>Status</th>
+                <th style={{ textAlign: 'right' }}>Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {sectionAlerts.map((a: any) => (
+                <tr key={a.id} className="cursor-pointer" onClick={() => setSelectedAlerta(a)}>
+                  <td>
+                    <div style={{ fontSize: '0.875rem', fontWeight: 800, color: 'var(--gray-900)' }}>
+                      {new Date((a.data_referencia || a.criado_at).split('T')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
+                    </div>
+                    <div style={{ fontSize: '0.7rem', color: 'var(--gray-400)', fontWeight: 700 }}>ID #{a.id?.substring(0,8)}</div>
+                  </td>
+                  <td>
+                    <div style={{ fontSize: '0.9375rem', fontWeight: 700, color: 'var(--gray-800)' }}>{getRegraFriendlyName(a.regra, a.tipo_alerta)}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--gray-500)', fontWeight: 500, maxWidth: '500px' }}>{a.resumo}</div>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <span className={`badge ${a.severidade === 'critico' ? 'badge-danger' : a.severidade === 'alerta' ? 'badge-warning' : 'badge-primary'}`} style={{ padding: '0.25rem 0.75rem' }}>
+                      {(a.severidade || 'insight').toUpperCase()}
+                    </span>
+                  </td>
+                  <td style={{ textAlign: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', fontSize: '0.75rem', fontWeight: 800 }}>
+                      <div className="badge-dot" style={{ color: getStatusColor(a.status) }} />
+                      <span style={{ color: 'var(--gray-700)' }}>
+                        {(STATUS_ALERTA_META_LABELS[a.status as StatusAlertaMeta] || a.status).toUpperCase()}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ textAlign: 'right' }}>
+                    <button className="btn btn-xs btn-primary">TRATAR</button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="page-container" style={{ padding: '2rem', background: '#F8FAFC', minHeight: '100vh' }}>
+    <div className="page-body" style={{ background: 'var(--bg-app)', padding: '2rem 2.5rem' }}>
       
-      {/* Header V2 */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+      {/* 1. HEADER EXECUTIVO LOCALIZADO */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '2.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
           <button 
+            className="btn-icon"
             onClick={() => router.push('/admin/auditoria/metas')}
-            style={{ 
-              width: '40px', height: '40px', borderRadius: '10px', background: 'white', 
-              border: '1px solid #E2E8F0', display: 'flex', alignItems: 'center', justifyContent: 'center',
-              cursor: 'pointer', transition: 'all 0.2s'
-            }}
+            style={{ width: '44px', height: '44px', borderRadius: '14px', background: 'white', boxShadow: 'var(--shadow-sm)' }}
           >
-            <ArrowLeft size={20} color="#64748B" />
+            <ArrowLeft size={20} />
           </button>
+          
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 800, color: '#3B82F6', textTransform: 'uppercase' }}>Auditoria Individual</span>
-              <div style={{ width: '4px', height: '4px', borderRadius: '50%', background: '#CBD5E1' }} />
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: '#94A3B8' }}>{operacao?.bandeira || 'LOG'}</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem', marginBottom: '0.2rem' }}>
+              <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--brand-primary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                Auditoria de Faturamento
+              </span>
+              <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: 'var(--gray-300)' }} />
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--gray-500)' }}>
+                {operacao?.bandeira || 'LOG'}
+              </span>
             </div>
-            <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1E293B', marginTop: '0.2rem' }}>
-              {operacao?.nome_operacao || 'Carregando Operação...'}
+            
+            <h1 style={{ fontSize: '1.75rem', fontWeight: 900, color: 'var(--gray-900)', letterSpacing: '-0.5px', lineHeight: 1.1 }}>
+              {loading && !operacao ? (
+                <span style={{ color: 'var(--gray-200)', animation: 'pulse 1.5s infinite' }}>Carregando operação...</span>
+              ) : (
+                operacao?.nome_operacao || 'Unidade não encontrada'
+              )}
             </h1>
           </div>
         </div>
-        
+
         <button 
+          className="btn btn-outline"
           onClick={fetchDados} 
           disabled={loading}
-          style={{ 
-            display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.6rem 1.25rem',
-            background: 'white', border: '1px solid #E2E8F0', borderRadius: '10px',
-            fontSize: '0.875rem', fontWeight: 600, color: '#475569', cursor: 'pointer'
-          }}
+          style={{ height: '44px', padding: '0 1.25rem', borderRadius: '12px' }}
         >
-          <RefreshCcw size={16} className={loading ? 'rotate-animation' : ''} />
-          Sincronizar
+          <RefreshCcw size={16} className={loading ? 'animate-spin' : ''} />
+          <span style={{ fontWeight: 700 }}>Sincronizar</span>
         </button>
       </div>
 
-      {/* Stats Quick View */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.5rem', marginBottom: '2rem' }}>
-         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ color: '#64748B', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>TOTAL DE OCORRÊNCIAS</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#0F172A' }}>{alertas.length}</div>
-         </div>
-         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ color: '#F97316', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>PENDENTES</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#F97316' }}>{alertas.filter(a => a.status === 'novo').length}</div>
-         </div>
-         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ color: '#3B82F6', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>EM TRATATIVA</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#3B82F6' }}>{alertas.filter(a => a.status === 'em_analise').length}</div>
-         </div>
-         <div style={{ background: 'white', padding: '1.25rem', borderRadius: '12px', border: '1px solid #E2E8F0' }}>
-            <div style={{ color: '#22C55E', fontSize: '0.75rem', fontWeight: 700, marginBottom: '0.5rem' }}>CONCLUÍDOS</div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#22C55E' }}>{alertas.filter(a => a.status === 'resolvido').length}</div>
-         </div>
+      {/* 2. CARDS SUPERIORES DE RESUMO REESTRUTURADOS */}
+      <div className="stats-grid" style={{ marginBottom: '2.5rem', gap: '1.25rem' }}>
+        {/* CARD 1 - TOTAL (DESTAQUE AZUL) */}
+        <div className="stat-card" style={{ 
+          background: 'var(--brand-primary)', 
+          border: 'none',
+          boxShadow: '0 15px 35px -10px rgba(0,0,128,0.3)',
+          transform: 'translateY(0)',
+          transition: 'transform 0.3s ease'
+        }}>
+          <div className="stat-icon-wrapper" style={{ background: 'rgba(255,255,255,0.15)', color: 'white' }}>
+            <Target size={22} />
+          </div>
+          <div>
+            <div className="stat-label" style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.65rem' }}>Total Ocorrências</div>
+            <div className="stat-value" style={{ color: 'white', fontSize: '1.5rem' }}>{stats.total}</div>
+          </div>
+        </div>
+
+        {/* CARD 2 - PENDENTES */}
+        <div className="stat-card" style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)' }}>
+          <div className="stat-icon-wrapper" style={{ background: 'var(--warning-bg)', color: 'var(--warning-dark)', width: '40px', height: '40px' }}>
+            <Clock size={20} />
+          </div>
+          <div>
+            <div className="stat-label" style={{ fontSize: '0.65rem' }}>Pendentes</div>
+            <div className="stat-value" style={{ color: 'var(--warning-dark)', fontSize: '1.5rem' }}>{stats.pendentes}</div>
+          </div>
+        </div>
+
+        {/* CARD 3 - EM TRATATIVA */}
+        <div className="stat-card" style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)' }}>
+          <div className="stat-icon-wrapper" style={{ background: 'var(--brand-primary-light)', color: 'var(--brand-primary)', width: '40px', height: '40px' }}>
+            <Activity size={20} />
+          </div>
+          <div>
+            <div className="stat-label" style={{ fontSize: '0.65rem' }}>Em Tratativa</div>
+            <div className="stat-value" style={{ color: 'var(--brand-primary)', fontSize: '1.5rem' }}>{stats.emTratativa}</div>
+          </div>
+        </div>
+
+        {/* CARD 4 - CONCLUÍDOS */}
+        <div className="stat-card" style={{ boxShadow: 'var(--shadow-sm)', border: '1px solid var(--gray-100)' }}>
+          <div className="stat-icon-wrapper" style={{ background: 'var(--success-bg)', color: 'var(--success-dark)', width: '40px', height: '40px' }}>
+            <CheckCircle2 size={20} />
+          </div>
+          <div>
+            <div className="stat-label" style={{ fontSize: '0.65rem' }}>Concluídos</div>
+            <div className="stat-value" style={{ color: 'var(--success-dark)', fontSize: '1.5rem' }}>{stats.concluidos}</div>
+          </div>
+        </div>
       </div>
 
-      {/* Alerts Table V2 */}
-      <div style={{ background: 'white', borderRadius: '12px', border: '1px solid #E2E8F0', overflow: 'hidden' }}>
-         <div style={{ padding: '1.5rem', borderBottom: '1px solid #F1F5F9', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.4rem', background: '#F8FAFC', borderRadius: '6px' }}><Activity size={18} color="#3B82F6" /></div>
-            <h2 style={{ fontSize: '1rem', fontWeight: 700, color: '#1E293B' }}>Fila de Auditoria da Unidade</h2>
-         </div>
+      {/* 3. LISTAGEM AGRUPADA POR STATUS */}
+      <div style={{ background: 'white', borderRadius: '24px', padding: '2rem', border: '1px solid var(--border-color)', boxShadow: 'var(--shadow-sm)' }}>
+        <div style={{ marginBottom: '2rem', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+          <ListTodo size={20} color="var(--brand-primary)" />
+          <h2 style={{ fontSize: '1.25rem', fontWeight: 900, color: 'var(--gray-900)' }}>Fila de Auditoria da Unidade</h2>
+        </div>
 
-         <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-               <thead style={{ background: '#F8FAFC' }}>
-                  <tr>
-                     <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Data Ref.</th>
-                     <th style={{ textAlign: 'left', padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Diagnóstico</th>
-                     <th style={{ textAlign: 'center', padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Severidade</th>
-                     <th style={{ textAlign: 'center', padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Status</th>
-                     <th style={{ textAlign: 'right', padding: '1rem 1.5rem', fontSize: '0.7rem', fontWeight: 800, color: '#94A3B8', textTransform: 'uppercase' }}>Ações</th>
-                  </tr>
-               </thead>
-               <tbody>
-                  {loading && alertas.length === 0 ? (
-                    <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Sincronizando registros de faturamento...</td></tr>
-                  ) : alertas.length === 0 ? (
-                    <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Unidade sem pendências de auditoria.</td></tr>
-                  ) : alertas.map((a: any) => (
-                    <tr key={a.id} style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }} className="hover-row">
-                       <td style={{ padding: '1.25rem 1.5rem' }}>
-                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#1E293B' }}>
-                             {new Date((a.data_referencia || a.criado_at).split('T')[0] + 'T12:00:00').toLocaleDateString('pt-BR')}
-                          </div>
-                          <div style={{ fontSize: '0.6rem', color: '#94A3B8', fontWeight: 600 }}>ID #{a.id?.substring(0,8)}</div>
-                       </td>
-                       <td style={{ padding: '1.25rem 1.5rem' }}>
-                          <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#334155' }}>{getRegraFriendlyName(a.regra, a.tipo_alerta)}</div>
-                          <div style={{ fontSize: '0.7rem', color: '#64748B', maxWidth: '300px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{a.resumo}</div>
-                       </td>
-                       <td style={{ textAlign: 'center' }}>
-                          <span style={{ 
-                            fontSize: '0.6rem', fontWeight: 800, padding: '0.2rem 0.5rem', borderRadius: '4px',
-                            background: a.severidade === 'critico' ? '#FEF2F2' : '#EFF6FF',
-                            color: a.severidade === 'critico' ? '#EF4444' : '#3B82F6'
-                          }}>
-                             {(a.severidade || 'insight').toUpperCase()}
-                          </span>
-                       </td>
-                       <td style={{ textAlign: 'center' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.4rem', fontSize: '0.75rem', fontWeight: 800, color: '#334155' }}>
-                             <div style={{ width: '6px', height: '6px', borderRadius: '50%', background: getStatusColor(a.status) }} />
-                             {(STATUS_ALERTA_META_LABELS[a.status as StatusAlertaMeta] || a.status).toUpperCase()}
-                          </div>
-                       </td>
-                       <td style={{ padding: '1.25rem 1.5rem', textAlign: 'right' }}>
-                          <button 
-                            className="btn-tratar"
-                            onClick={() => setSelectedAlerta(a)}
-                            style={{ 
-                              padding: '0.4rem 1rem', background: '#0F172A', color: 'white', border: 'none', 
-                              borderRadius: '6px', fontSize: '0.65rem', fontWeight: 800, cursor: 'pointer'
-                            }}
-                          >
-                             TRATAR OCORRÊNCIA
-                          </button>
-                       </td>
-                    </tr>
-                  ))}
-               </tbody>
-            </table>
-         </div>
+        {loading && alertas.length === 0 ? (
+          <div style={{ padding: '4rem', textAlign: 'center' }}>
+            <RefreshCcw size={32} className="animate-spin" style={{ color: 'var(--gray-200)', marginBottom: '1rem' }} />
+            <p style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--gray-400)' }}>Sincronizando registros da unidade...</p>
+          </div>
+        ) : (
+          <>
+            {renderAlertTable(groupedAlerts.pendentes, "Ocorrências Pendentes", <ShieldAlert size={16} />, 'var(--warning)')}
+            {renderAlertTable(groupedAlerts.emTratativa, "Em Tratativa / Análise", <ArrowRightCircle size={16} />, 'var(--brand-primary)')}
+            {renderAlertTable(groupedAlerts.concluidos, "Ocorrências Concluídas", <CheckCircle size={16} />, 'var(--success)')}
+            
+            {alertas.length === 0 && (
+              <div style={{ padding: '4rem', textAlign: 'center', background: 'var(--gray-50)', borderRadius: '20px' }}>
+                <CheckCircle2 size={48} color="var(--success)" style={{ opacity: 0.2, marginBottom: '1rem' }} />
+                <h3 style={{ fontSize: '1.125rem', fontWeight: 800, color: 'var(--gray-800)', marginBottom: '0.25rem' }}>Tudo em ordem!</h3>
+                <p style={{ color: 'var(--gray-500)', fontSize: '0.875rem', fontWeight: 600 }}>Nenhuma ocorrência pendente para esta operação.</p>
+              </div>
+            )}
+          </>
+        )}
       </div>
 
       {selectedAlerta && (
@@ -218,10 +306,13 @@ export default function OperationAlertsPage({ params }: { params: Promise<{ id: 
       )}
 
       <style jsx>{`
-        .hover-row:hover { background: #F8FAFC; }
-        .btn-tratar:hover { background: #1E293B !important; transform: translateY(-1px); }
-        .rotate-animation { animation: rotate 1s linear infinite; }
-        @keyframes rotate { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes pulse { 
+          0% { opacity: 0.6; } 
+          50% { opacity: 1; } 
+          100% { opacity: 0.6; } 
+        }
       `}</style>
     </div>
   );
