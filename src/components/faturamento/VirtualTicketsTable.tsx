@@ -38,7 +38,7 @@ export const VirtualTicketsTable: React.FC<VirtualTicketsTableProps> = ({ ticket
           <span className="text-xs font-bold text-uppercase">{t.forma_pagamento || 'Crédito/Débito'}</span>
         </div>
         <div style={{ width: '100px', textAlign: 'right', fontWeight: 700, color: 'var(--gray-900)' }}>
-          {t.tipo_movimento === 'Despesa' ? '-' : ''}{formatarMoeda(Number(t.valor))}
+          {(t.tipo_movimento === 'Despesa' || t.tipo_movimento === 'Saída' || t.tipo_movimento === 'Saida') ? '-' : ''}{formatarMoeda(Number(t.valor || 0))}
         </div>
       </div>
     );

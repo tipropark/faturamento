@@ -13,11 +13,12 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { movimentos } = body;
     
-    // 1. Extrair ID da Operação e Token dos Headers (ou body como fallback se necessário)
-    const operacao_id = req.headers.get('x-operacao-id') || body.operacao_id;
-    const token = req.headers.get('x-integration-token') || body.token_integracao;
-
+    // 1. Extrair e Sanitizar ID da Operação e Token
+    const operacao_id = (req.headers.get('x-operacao-id') || body.operacao_id || '').trim();
+    const token = (req.headers.get('x-integration-token') || body.token_integracao || '').trim();
+    
     if (!operacao_id || !token || !Array.isArray(movimentos)) {
+      console.warn('BAD_REQUEST: Payload incompleto ou movimentos não é array', { operacao_id, token });
       return NextResponse.json({ 
         error: 'Payload inválido: x-operacao-id, x-integration-token e movimentos são obrigatórios' 
       }, { status: 400 });
@@ -32,11 +33,32 @@ export async function POST(req: NextRequest) {
       .single();
 
     if (opError || !op) {
-      console.warn(`AUTH_INTEGRACAO_FAIL: Op: ${operacao_id} | Token: ${token ? 'PROVIDED' : 'MISSING'}`);
-      return NextResponse.json({ error: 'Operação não encontrada ou Token inválido' }, { status: 401 });
+      console.error(`AUTH_FAILED: OpID [${operacao_id}] | Token [${token}]`, opError?.message);
+      return NextResponse.json({ error: 'Operação não cadastrada ou Token de Integração inválido.' }, { status: 401 });
     }
 
-    console.log(`IMPORT_FAT: Recebendo ${movimentos.length} movimentos para Op: ${op.nome_operacao}`);
+    console.log(`[SENIOR_SYNC] Recebendo ${movimentos.length} itens para -> ${op.nome_operacao}`);
+    
+    // 3. Limpeza Opcional (Evita duplicatas por mudança de versão do agente)
+    const purgeToday = req.headers.get('x-purge-today') === 'true';
+    if (purgeToday) {
+      const today = new Date().toISOString().split('T')[0];
+      console.log(`[SENIOR_PURGE] Limpando movimentos e resumos de hoje para ${op.nome_operacao}...`);
+      
+      // Limpar movimentos brutos
+      await supabase
+        .from('faturamento_movimentos')
+        .delete()
+        .eq('operacao_id', operacao_id)
+        .gte('data_saida', `${today}T00:00:00.000Z`);
+
+      // Limpar consolidado diário (Obriga o sistema a regerar com os novos valores)
+      await supabase
+        .from('faturamento_resumo_diario')
+        .delete()
+        .eq('operacao_id', operacao_id)
+        .eq('data_referencia', today);
+    }
 
     let inserted = 0;
     let duplicated = 0;
@@ -60,8 +82,8 @@ export async function POST(req: NextRequest) {
       atualizado_em: new Date().toISOString()
     }));
 
-    // Chunking to avoid large payload limits if necessary, but 100-500 is usually fine
-    const chunkSize = 100;
+    // Chunking to avoid large payload limits if necessary, but 1000 is safer for performance
+    const chunkSize = 1000;
     for (let i = 0; i < preparedMovimentos.length; i += chunkSize) {
       const chunk = preparedMovimentos.slice(i, i + chunkSize);
       
@@ -69,7 +91,7 @@ export async function POST(req: NextRequest) {
         .from('faturamento_movimentos')
         .upsert(chunk, { 
           onConflict: 'operacao_id, ticket_id',
-          ignoreDuplicates: true // Ignorar duplicados (deduplicação)
+          ignoreDuplicates: false // Permitir ATUALIZAÇÃO para saneamento de dados
         })
         .select('id');
 
@@ -85,8 +107,14 @@ export async function POST(req: NextRequest) {
 
     const duration = Date.now() - startTime;
 
-    // 3. Registrar Log de Importação
-    await supabase.from('faturamento_importacao_logs').insert({
+    // 3. Registrar Log de Importação e Notificar Saúde da Operação (Ativar Triggers)
+    const latestMoveDate = movimentos.reduce((max, m) => {
+      const d = new Date(m.data_saida);
+      return d > max ? d : max;
+    }, new Date(0));
+
+    // Executar operações de log e status de forma sequencial para capturar erros específicos
+    const { error: errLog } = await supabase.from('faturamento_importacao_logs').insert({
       operacao_id,
       quantidade_recebida: movimentos.length,
       quantidade_inserida: inserted,
@@ -100,6 +128,29 @@ export async function POST(req: NextRequest) {
         ultimo_ticket: movimentos[movimentos.length - 1]?.ticket_id
       }
     });
+
+    const { error: errSync } = await supabase.from('faturamento_sincronizacoes').insert({
+      operacao_id,
+      agente_id: 'API_V2_AGENT',
+      status: errorCount > 0 ? 'ALERTA' : 'SUCESSO',
+      registros_processados: inserted,
+      tempo_execucao_segundos: duration / 1000,
+      mensagem: `Importação em Massa via API - ${inserted} registros.`
+    });
+
+    // 4. ATUALIZAÇÃO DRÁSTICA DE SAÚDE (Forçar flag de ativa)
+    const { error: errOpUpdate } = await supabase.from('operacoes').update({ 
+      ultima_sincronizacao: new Date().toISOString(),
+      ultimo_movimento_em: latestMoveDate > new Date(0) ? latestMoveDate.toISOString() : undefined,
+      integracao_faturamento_ativa: true,
+      integracao_faturamento_tipo: 'api_agent'
+    }).eq('id', operacao_id);
+
+      // 5. Forçar Consolidação Imediata do Resumo (Power Feature)
+      await supabase.rpc('faturamento_consolidar_dia_v2', { 
+        p_operacao_id: operacao_id, 
+        p_data: new Date().toISOString().split('T')[0] 
+      });
 
     return NextResponse.json({
       success: true,

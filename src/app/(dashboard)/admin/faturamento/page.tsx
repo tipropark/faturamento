@@ -4,10 +4,10 @@ import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   BarChart3, PlusCircle,
   MinusCircle,
-  TrendingUp, Wallet, MapPin, 
+  TrendingUp, TrendingDown, Wallet, MapPin, 
   Activity, Zap, ChevronLeft, Ticket, Tag, RefreshCcw,
   CheckCircle2, AlertCircle, AlertTriangle, Clock, Wifi, WifiOff, DollarSign, PenLine, 
-  ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2
+  ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2, ArrowDown
 } from 'lucide-react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
@@ -40,10 +40,17 @@ const ESTRUTURA_FATURAMENTO = [
     ]
   },
   {
+    grupo: "SAÍDAS E DESPESAS",
+    itens: [
+      "Despesa",
+      "Sangria",
+      "Liberação"
+    ]
+  },
+  {
     grupo: "OUTROS",
     itens: [
-      "Eventuais",
-      "Liberação"
+      "Eventuais"
     ]
   }
 ];
@@ -80,6 +87,9 @@ function classificarMovimento(tipo?: string, forma?: string, descricao?: string)
   if (t.includes('CONECTCAR') || t.includes('SEM PARAR') || t.includes('VELOE') || t.includes('TAG') || d.includes('CONECT')) return "ConectCar";
   
   // OUTROS
+  // OUTROS / DESPESAS
+  if (t.includes('DESPESA') || t.includes('SAIDA') || t.includes('SAÍDA') || d.includes('DESPESA') || d.includes('SAIDA') || d.includes('SAÍDA')) return "Despesa";
+  if (t.includes('SANGRIA') || d.includes('SANGRIA')) return "Sangria";
   if (t.includes('LIBERACAO') || d.includes('LIBERACAO')) return "Liberação";
   if (t.includes('EVENTUAL') || t.includes('CANCELAMENTO') || d.includes('EVENTUAL') || d.includes('SOBRA') || d.includes('QUEBRA')) return "Eventuais";
 
@@ -117,6 +127,7 @@ function getCategoriaStyles(catName: string) {
   if (name.includes('LIBERACAO')) return { icon: <ZapOff size={16} />, color: '#64748b', bg: '#f1f5f9' };
   if (name.includes('MENSALISTA')) return { icon: <User size={16} />, color: '#10b981', bg: '#ecfdf5' };
   if (name.includes('ROTATIVO')) return { icon: <Clock size={16} />, color: '#f43f5e', bg: '#fff1f2' };
+  if (name.includes('DESPESA') || name.includes('SAIDA') || name.includes('SANGRIA')) return { icon: <TrendingDown size={16} />, color: '#ef4444', bg: '#fef2f2' };
   
   if (name.includes('CREDITO') || name.includes('DEBITO') || name.includes('CARTAO')) return { icon: <CreditCard size={16} />, color: '#8b5cf6', bg: '#f5f3ff' };
   if (name.includes('PIX')) return { icon: <Smartphone size={16} />, color: '#06b6d4', bg: '#ecfeff' };
@@ -414,6 +425,7 @@ export default function FaturamentoPage() {
       expense: s.total_despesa_ajustada,
       net_total: s.resultado_liquido_ajustado,
       count: s.quantidade_movimentos,
+      resumo_tipo: s.resumo_tipo, // CAMINHO DA VERDADE
       is_virtual: s.is_live
     })));
 
@@ -492,20 +504,52 @@ export default function FaturamentoPage() {
       r.operacao_id === selectedOp.id && r.data_referencia === activeDate
     );
 
+    // Buscar ajustes do dia
+    const dayAdjustments = allAjustes.filter((a: any) => a.operacao_id === selectedOp.id && a.data_referencia === activeDate);
+
     if (official) {
       return {
-        revenue: (Number(official.total_receita_ajustada) || 0) + 
-                 (Number(official.total_avulso_ajustado) || 0) + 
-                 (Number(official.total_mensalista_ajustado) || 0),
-        expense: (Number(official.total_despesa_ajustada) || 0),
-        net: (Number(official.resultado_liquido_ajustado) || 0),
+        revenue: (Number(official.total_receita_ajustada || 0)) + 
+                 (Number(official.total_avulso_ajustado || 0)) + 
+                 (Number(official.total_mensalista_ajustado || 0)),
+        expense: (Number(official.total_despesa_ajustada || 0)),
+        net: (Number(official.resultado_liquido_ajustado || 0)),
         count: (Number(official.quantidade_movimentos) || 0),
-        adjustments: allAjustes.filter((a: any) => a.operacao_id === selectedOp.id && a.data_referencia === activeDate)
+        adjustments: dayAdjustments
+      };
+    }
+
+    // FALLBACK SENIOR: Se não houver resumo consolidado, calcula via movimentos brutos (REAL-TIME)
+    if (tickets.length > 0) {
+      let revenue = 0;
+      let expense = 0;
+      
+      tickets.forEach((t: any) => {
+        const cat = classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao);
+        const valor = Number(t.valor || 0);
+        
+        const isExpense = cat === "Liberação" || cat === "Despesa" || cat === "Saída" || cat === "Saida";
+        if (isExpense) {
+          expense += valor;
+        } else {
+          revenue += valor;
+        }
+      });
+
+      // Somar ajustes manuais ao fallback
+      const adjSum = dayAdjustments.reduce((acc, a) => acc + (a.tipo_ajuste === 'Despesa' ? -Number(a.valor) : Number(a.valor)), 0);
+
+      return {
+        revenue,
+        expense,
+        net: revenue - expense + adjSum,
+        count: tickets.length,
+        adjustments: dayAdjustments
       };
     }
 
     return { revenue: 0, expense: 0, net: 0, count: 0, adjustments: [] };
-  }, [allResumos, allAjustes, activeDate, selectedOp]);
+  }, [allResumos, allAjustes, activeDate, selectedOp, tickets]);
 
   const handleSalvarAjuste = async () => {
     if (!ajusteValue || !ajusteMotivo) return alert("Preencha o valor e o motivo do ajuste.");
@@ -639,19 +683,28 @@ export default function FaturamentoPage() {
                 </div>
               </div>
 
-              <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
+              <div style={{ 
+                background: 'rgba(16, 185, 129, 0.04)', 
+                padding: '1.25rem', 
+                borderRadius: '14px', 
+                border: '2px solid #10b981',
+                boxShadow: '0 0 20px rgba(16, 185, 129, 0.15), inset 0 0 10px rgba(16, 185, 129, 0.05)',
+                position: 'relative',
+                overflow: 'hidden'
+              }}>
+                <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#10b981' }} />
                 <div className="flex flex-between items-center mb-2">
-                   <span className="text-xs font-bold text-muted uppercase tracking-wider">Resultado Líquido</span>
-                   <div style={{ color: 'var(--success)', background: 'var(--success-bg)', padding: '6px', borderRadius: '8px' }}>
-                     <Zap size={16} />
+                   <span className="text-xs font-bold uppercase tracking-wider" style={{ color: '#047857' }}>Resultado Líquido</span>
+                   <div style={{ color: '#fff', background: '#10b981', padding: '6px', borderRadius: '8px', boxShadow: '0 0 10px rgba(16, 185, 129, 0.4)' }}>
+                     <Zap size={16} fill="currentColor" />
                    </div>
                 </div>
-                <div className="text-2xl font-black leading-tight" style={{ color: dashboardStats.net >= 0 ? 'var(--gray-900)' : 'var(--danger)' }}>
+                <div className="text-3xl font-black leading-tight" style={{ color: dashboardStats.net >= 0 ? '#065f46' : 'var(--danger)', textShadow: '0 2px 4px rgba(16, 185, 129, 0.1)' }}>
                   {formatarMoeda(dashboardStats.net)}
                 </div>
                 <div className="mt-3 flex items-center gap-2">
-                   <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: dashboardStats.net >= 0 ? 'var(--success)' : 'var(--danger)' }} />
-                   <span className="text-xs font-bold uppercase" style={{ color: dashboardStats.net >= 0 ? 'var(--success)' : 'var(--danger)' }}>Consolidado</span>
+                   <div className="animate-pulse" style={{ width: '10px', height: '10px', borderRadius: '50%', background: '#10b981', boxShadow: '0 0 8px #10b981' }} />
+                   <span className="text-xs font-bold uppercase" style={{ color: '#059669' }}>Consolidado Real-Time</span>
                 </div>
               </div>
 
@@ -699,11 +752,20 @@ export default function FaturamentoPage() {
                     if (!dateStr) return 3;
                     const diff = new Date().getTime() - new Date(dateStr).getTime();
                     const hours = diff / (1000 * 60 * 60);
-                    if (hours < 1) return 0; // Ativo
-                    if (hours < 24) return 1; // Atrasado
-                    return 2; // Offline
+                    if (hours < 1) return 0; // Ativo (menos de 1h)
+                    if (hours < 24) return 1; // Instável (menos de 24h)
+                    return 2; // Offline (mais de 24h)
                   };
-                  return getWeight(a.ultima_sincronizacao) - getWeight(b.ultima_sincronizacao);
+                  
+                  const weightA = getWeight(a.ultima_sincronizacao);
+                  const weightB = getWeight(b.ultima_sincronizacao);
+                  
+                  if (weightA !== weightB) {
+                    return weightA - weightB;
+                  }
+                  
+                  // Se o peso de sincronização for igual, ordena por nome (A-Z)
+                  return a.nome_operacao.localeCompare(b.nome_operacao);
                 }).map((op: any) => {
                   const stats = allOperationStats.find(s => s.opId === op.id) || { net: 0, revenue: 0, count: 0, last7Days: [] };
                   const { net, revenue, count, last7Days } = stats;
@@ -783,30 +845,112 @@ export default function FaturamentoPage() {
                     <div style={{ 
                       display: 'grid', 
                       gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-                      gap: '1rem' 
+                      gap: '1rem',
+                      alignItems: 'stretch'
                     }}>
-                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Receita Total</span>
-                         <span className="text-2xl font-black text-gray-900">{formatarMoeda(totalRev)}</span>
+                      {/* RECEITA */}
+                      <div style={{ 
+                        background: 'rgba(59, 130, 246, 0.04)', 
+                        padding: '1.25rem', 
+                        borderRadius: '16px', 
+                        border: '2px solid #3b82f6',
+                        boxShadow: '0 4px 12px rgba(59, 130, 246, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '100px'
+                      }}>
+                         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#3b82f6' }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest block mb-1" style={{ color: '#1d4ed8' }}>Receita Total</span>
+                         <span className="text-3xl font-black block text-gray-900">{formatarMoeda(totalRev)}</span>
+                         <div className="mt-2 flex items-center gap-1">
+                            <DollarSign size={10} className="text-blue-500" />
+                            <span className="text-[9px] font-bold text-blue-600 uppercase">Volume Bruto</span>
+                         </div>
                       </div>
-                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Despesa Total</span>
-                         <span className="text-2xl font-black text-danger">{formatarMoeda(totalExp)}</span>
+
+                      {/* DESPESA */}
+                      <div style={{ 
+                        background: 'rgba(239, 68, 68, 0.04)', 
+                        padding: '1.25rem', 
+                        borderRadius: '16px', 
+                        border: '2px solid #ef4444',
+                        boxShadow: '0 4px 12px rgba(239, 68, 68, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '100px'
+                      }}>
+                         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#ef4444' }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest block mb-1" style={{ color: '#b91c1c' }}>Despesa Total</span>
+                         <span className="text-3xl font-black block text-danger">{formatarMoeda(totalExp)}</span>
+                         <div className="mt-2 flex items-center gap-1">
+                            <TrendingDown size={10} className="text-danger" />
+                            <span className="text-[9px] font-bold text-danger uppercase">Saídas e Sangrias</span>
+                         </div>
                       </div>
-                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Resultado Líquido</span>
-                         <span className="text-2xl font-black" style={{ color: net >= 0 ? 'var(--success-dark)' : 'var(--danger)' }}>{formatarMoeda(net)}</span>
+
+                      {/* LÍQUIDO */}
+                      <div style={{ 
+                        background: 'rgba(16, 185, 129, 0.04)', 
+                        padding: '1.25rem', 
+                        borderRadius: '16px', 
+                        border: '2px solid #10b981',
+                        boxShadow: '0 8px 24px rgba(16, 185, 129, 0.15)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '110px'
+                      }}>
+                         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#10b981' }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest block mb-1" style={{ color: '#047857' }}>Resultado Líquido</span>
+                         <span className="text-3xl font-black block" style={{ color: '#065f46' }}>{formatarMoeda(net)}</span>
+                         <div className="mt-2 flex items-center gap-1">
+                            <Zap size={10} className="text-success fill-success" />
+                            <span className="text-[9px] font-bold text-success uppercase">Consolidação Real</span>
+                         </div>
                       </div>
-                      <div style={{ background: 'var(--gray-50)', padding: '1.25rem', borderRadius: '14px', border: '1px solid var(--gray-100)' }}>
-                         <span className="text-xs font-bold text-muted uppercase tracking-wider block mb-2">Volume Total</span>
-                         <span className="text-2xl font-black text-gray-900">{vol} <span className="text-sm font-bold opacity-40">Movs</span></span>
+
+                      {/* VOLUME */}
+                      <div style={{ 
+                        background: 'rgba(99, 102, 241, 0.04)', 
+                        padding: '1.25rem', 
+                        borderRadius: '16px', 
+                        border: '2px solid #6366f1',
+                        boxShadow: '0 4px 12px rgba(99, 102, 241, 0.08)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        minHeight: '100px'
+                      }}>
+                         <div style={{ position: 'absolute', top: 0, left: 0, width: '4px', height: '100%', background: '#6366f1' }} />
+                         <span className="text-[10px] font-black uppercase tracking-widest block mb-1" style={{ color: '#4338ca' }}>Volume Total</span>
+                         <span className="text-3xl font-black block text-gray-900">{vol} <span className="text-sm font-bold opacity-30">Movs</span></span>
+                         <div className="mt-2 flex items-center gap-1">
+                            <Activity size={10} className="text-indigo-500" />
+                            <span className="text-[9px] font-bold text-indigo-600 uppercase">Tickets Processados</span>
+                         </div>
                       </div>
                     </div>
                  );
                })()}
-            </section>
+          </section>
 
-          <div className="flex gap-3 mb-6" style={{ overflowX: 'auto', paddingBottom: '0.5rem', scrollbarWidth: 'none', maskImage: 'linear-gradient(to right, black 90%, transparent)' }}>
+          <div className="flex gap-3 mb-6 scroll-smooth" style={{ 
+            overflowX: 'auto', 
+            padding: '0.25rem 0.25rem 1rem 0.25rem', 
+            scrollbarWidth: 'none', 
+            msOverflowStyle: 'none',
+            WebkitOverflowScrolling: 'touch'
+          }}>
              {dailySummaries.map((summary: any) => {
                 const dateObj = new Date(summary.date + 'T12:00:00');
                 const isSelected = activeDate === summary.date;
@@ -816,22 +960,25 @@ export default function FaturamentoPage() {
                      onClick={() => setActiveDate(summary.date)}
                      className={`btn ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
                      style={{ 
-                       height: 'auto', 
-                       padding: '0.625rem 1rem', 
-                       borderRadius: '16px', 
-                       flexShrink: 0, 
-                       minWidth: '100px',
-                       borderWidth: isSelected ? '1px' : '1px',
-                       borderColor: isSelected ? 'var(--brand-primary)' : 'var(--gray-200)',
-                       boxShadow: isSelected ? 'var(--shadow-md)' : 'none'
+                        height: '64px',
+                        padding: '0.5rem 1.25rem', 
+                        borderRadius: '18px', 
+                        flexShrink: 0, 
+                        minWidth: '110px',
+                        borderWidth: isSelected ? '2px' : '1px',
+                        borderColor: isSelected ? 'var(--brand-primary)' : 'var(--gray-200)',
+                        boxShadow: isSelected ? '0 8px 16px rgba(0,0,128,0.15)' : 'none',
+                        transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center'
                      }}
                   >
-                     <div className="flex flex-col items-center">
-                        <span className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ opacity: isSelected ? 0.9 : 0.4 }}>
-                          {dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })}
-                        </span>
-                        <span className="text-xl font-black">{dateObj.getDate()}</span>
-                     </div>
+                     <span className="text-[10px] uppercase font-black tracking-widest mb-1" style={{ opacity: isSelected ? 0.9 : 0.4 }}>
+                       {dateObj.toLocaleDateString('pt-BR', { weekday: 'short' })}
+                     </span>
+                     <span className="text-xl font-black">{dateObj.getDate()}</span>
                   </button>
                 );
              })}
@@ -841,10 +988,10 @@ export default function FaturamentoPage() {
              const dayData = dailySummaries.find((s: any) => s.date === activeDate);
              const adjustmentsByDay: any[] = dayData?.ajustes || [];
              
-             const byType = dayData?.resumo_tipo || {};
-             const totalRevenue = Object.values(byType).reduce((a: number, b: any) => a + Number(b.total || 0), 0) || 1;
-             const isAjustado = dayData?.is_ajustado;
-             const op = selectedOp;
+    const byType = dayData?.resumo_tipo || {};
+    const totalRevenue = Number(dayData?.total || 1);
+    const isAjustado = dayData?.is_ajustado;
+    const op = selectedOp;
 
              return (
                <div className="flex flex-col gap-6">
@@ -899,9 +1046,14 @@ export default function FaturamentoPage() {
                             </header>
                             <div className="flex flex-col">
                                {itensDoGrupo.map((catName) => {
+                                 // LÓGICA DE PRIORIDADE: Se existe resumo oficial para essa categoria, use ele.
+                                 // Senão, fallback para contagem em tempo real (para movimentos recém-sincronizados antes da cron).
+                                 const officialData = byType[catName];
+                                 
                                  const movs = tickets.filter((t: any) => classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao) === catName);
-                                 const total = movs.reduce((sum: number, m: any) => sum + Number(m.valor || 0), 0);
-                                 const count = movs.length;
+                                 const total = officialData ? Number(officialData.total || 0) : movs.reduce((sum: number, m: any) => sum + Number(m.valor || 0), 0);
+                                 const count = officialData ? Number(officialData.quantidade || 0) : movs.length;
+                                 
                                  const percent = ((total / (totalRevenue || 1)) * 100).toFixed(1);
                                  const isSelected = filterCategory === catName;
                                  const styles = getCategoriaStyles(catName);

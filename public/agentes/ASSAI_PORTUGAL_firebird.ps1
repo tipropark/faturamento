@@ -1,5 +1,5 @@
 # ------------------------------------------------------------------------------
-# LEVE ERP - AGENTE COLETOR PERSONAL (FIREBIRD x86) - GENÉRICO (PS 2.0+)
+# LEVE ERP - AGENTE COLETOR ASSAI PORTUGAL (FIREBIRD x86)
 # ------------------------------------------------------------------------------
 
 param(
@@ -33,7 +33,7 @@ function Invoke-LegacyPost($Url, $HeaderDict, $Payload) {
 }
 
 Write-Host "============================================================" -ForegroundColor Cyan
-Write-Host "   LEVE ERP - AGENTE PERSONAL (INTELIGÊNCIA DE CAIXA)       " -ForegroundColor Cyan
+Write-Host "   LEVE ERP - AGENTE ASSAI PORTUGAL (DESPESA FIX)           " -ForegroundColor Cyan
 Write-Host "============================================================" -ForegroundColor Cyan
 
 try {
@@ -62,7 +62,6 @@ SELECT
     X.desc_cartao,
     X.descricao
 FROM (
-
     SELECT
         'MOVIMENTACAO' AS origem_tabela,
         CAST(m.CODENTRA AS VARCHAR(50)) AS ticket_label,
@@ -75,12 +74,11 @@ FROM (
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '1' THEN 'DINHEIRO'
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '2' THEN 'PIX'
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '4' THEN 'CONVENIO'
-            WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) IN ('5', 'P1') THEN
+            WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '5' OR TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = 'P1' THEN
                 CASE
                     WHEN UPPER(TRIM(COALESCE(m.DESCCARTAO, ''))) CONTAINING 'CRED' THEN 'CARTAO - CREDITO'
                     WHEN UPPER(TRIM(COALESCE(m.DESCCARTAO, ''))) CONTAINING 'DEB' THEN 'CARTAO - DEBITO'
-                    WHEN TRIM(COALESCE(m.DESCCARTAO, '')) <> '' THEN
-                        'CARTAO - ' || UPPER(TRIM(m.DESCCARTAO))
+                    WHEN TRIM(COALESCE(m.DESCCARTAO, '')) <> '' THEN 'CARTAO - ' || UPPER(TRIM(m.DESCCARTAO))
                     ELSE 'CARTAO'
                 END
             ELSE 'OUTROS'
@@ -89,9 +87,7 @@ FROM (
         COALESCE(m.DESCCARTAO, '') AS desc_cartao,
         CAST('' AS VARCHAR(100)) AS descricao
     FROM MOVIMENTACAO m
-    WHERE m.DT_SAIDA BETWEEN ? AND ?
-      AND m.DT_SAIDA IS NOT NULL
-      AND m.HR_SAIDA IS NOT NULL
+    WHERE (m.DT_SAIDA BETWEEN ? AND ?) OR (m.DT_ENTRA BETWEEN ? AND ?)
 
     UNION ALL
 
@@ -109,7 +105,6 @@ FROM (
         COALESCE(me.NOME, '') AS descricao
     FROM MENSAL me
     WHERE me.DATA_INC BETWEEN ? AND ?
-      AND me.DATA_INC IS NOT NULL
 
     UNION ALL
 
@@ -121,25 +116,21 @@ FROM (
         c.DATALANC AS data_saida_data,
         c.HORALANC AS data_saida_hora,
         CASE
-            WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'E' THEN c.VALORBAI
-            WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'S' THEN c.VALORBAI * -1
+            WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'E' OR TRIM(COALESCE(c.TIPOLANC, '')) = 'S' THEN c.VALORBAI
             ELSE 0.00
         END AS valor,
         'CAIXA' AS forma_pagamento,
         CASE
             WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'E' THEN 'Receita'
-            WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'S' THEN 'Saida'
+            WHEN TRIM(COALESCE(c.TIPOLANC, '')) = 'S' THEN 'Despesa'
             ELSE 'Neutro'
         END AS tipo_movimento,
         CAST('' AS VARCHAR(30)) AS desc_cartao,
         COALESCE(c.HISTORIC, '') AS descricao
     FROM CAIXA c
     WHERE c.DATALANC BETWEEN ? AND ?
-      AND c.DATALANC IS NOT NULL
-      AND c.HORALANC IS NOT NULL
-
 ) X
-ORDER BY X.data_saida_data, X.data_saida_hora, X.ticket_label
+ORDER BY COALESCE(X.data_saida_data, X.data_entrada_data), X.data_saida_hora, X.ticket_label
 "@
 
     $ini = (Get-Date).Date.AddDays(0).ToString("yyyy-MM-dd")
@@ -153,6 +144,8 @@ ORDER BY X.data_saida_data, X.data_saida_hora, X.ticket_label
     $Cmd.Parameters.Add("P4", [System.Data.Odbc.OdbcType]::Date).Value = $fim
     $Cmd.Parameters.Add("P5", [System.Data.Odbc.OdbcType]::Date).Value = $ini
     $Cmd.Parameters.Add("P6", [System.Data.Odbc.OdbcType]::Date).Value = $fim
+    $Cmd.Parameters.Add("P7", [System.Data.Odbc.OdbcType]::Date).Value = $ini
+    $Cmd.Parameters.Add("P8", [System.Data.Odbc.OdbcType]::Date).Value = $fim
     
     $Reader = $Cmd.ExecuteReader()
     $DataTable = New-Object System.Data.DataTable
@@ -163,35 +156,47 @@ ORDER BY X.data_saida_data, X.data_saida_hora, X.ticket_label
     Write-Log "Coletados $($Count) registros." "Green"
     
     if ($Count -gt 0) {
+        Write-Log "Processando lotes..." "Cyan"
         $batchSize = 500
+        $totalBatches = [Math]::Ceiling($Count / $batchSize)
+        
         for ($i = 0; $i -lt $Count; $i += $batchSize) {
             $currentBatch = [Math]::Floor($i / $batchSize) + 1
+            Write-Log "Enviando Lote $($currentBatch) de $($totalBatches)..." "Yellow"
+            
             $sb = New-Object System.Text.StringBuilder
             [void]$sb.Append("{""movimentos"": [")
-            $first = $true
+            $firstInBatch = $true
             $md5 = [System.Security.Cryptography.MD5]::Create()
+            
             $limit = [Math]::Min($i + $batchSize, $Count)
             for ($j = $i; $j -lt $limit; $j++) {
                 $Row = $DataTable.Rows[$j]
-                if (-not $first) { [void]$sb.Append(",") }
-                $first = $false
+                if (-not $firstInBatch) { [void]$sb.Append(",") }
+                $firstInBatch = $false
+                
                 $origem = $Row["origem_tabela"].ToString().Trim().Replace('"','')
                 $ticket = $Row["ticket_label"].ToString().Trim().Replace('"','')
                 $fp = $Row["forma_pagamento"].ToString().Trim().Replace('"','')
                 $tm = $Row["tipo_movimento"].ToString().Trim().Replace('"','')
                 $valor = $Row["valor"].ToString().Replace(',','.')
+                if (!$valor) { $valor = "0.00" }
                 
-                $dtE = [DateTime]$Row["data_entrada_data"]
-                $rawTimeE = $Row["data_entrada_hora"]
-                if ($rawTimeE -is [System.TimeSpan]) { $dtE = $dtE.Add($rawTimeE) }
-                $dtEntrada = $dtE.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                $dtE = $null
+                if ($Row["data_entrada_data"] -ne [DBNull]::Value) {
+                    $dtE = [DateTime]$Row["data_entrada_data"]
+                    if ($Row["data_entrada_hora"] -is [System.TimeSpan]) { $dtE = $dtE.Add($Row["data_entrada_hora"]) }
+                }
+                $dtEntrada = if ($dtE) { $dtE.ToString("yyyy-MM-ddTHH:mm:ssZ") } else { "" }
 
-                $dtS = [DateTime]$Row["data_saida_data"]
-                $rawTimeS = $Row["data_saida_hora"]
-                if ($rawTimeS -is [System.TimeSpan]) { $dtS = $dtS.Add($rawTimeS) }
-                $dtSaida = $dtS.ToString("yyyy-MM-ddTHH:mm:ssZ")
+                $dtS = $null
+                if ($Row["data_saida_data"] -ne [DBNull]::Value) {
+                    $dtS = [DateTime]$Row["data_saida_data"]
+                    if ($Row["data_saida_hora"] -is [System.TimeSpan]) { $dtS = $dtS.Add($Row["data_saida_hora"]) }
+                }
+                $dtSaida = if ($dtS) { $dtS.ToString("yyyy-MM-ddTHH:mm:ssZ") } else { $null }
 
-                $idBase = "$origem-$ticket-$dtSaida-$OperationID"
+                $idBase = "$origem-$ticket-$dtEntrada-$OperationID"
                 $hashBytes = $md5.ComputeHash([System.Text.Encoding]::UTF8.GetBytes($idBase))
                 $tid = "ASSAI-" + ([System.BitConverter]::ToString($hashBytes) -replace "-","").ToLower()
 
@@ -200,12 +205,21 @@ ORDER BY X.data_saida_data, X.data_saida_hora, X.ticket_label
             }
             [void]$sb.Append("]}")
             $md5.Dispose()
+            
             $Payload = $sb.ToString()
-            $Headers = @{ "x-operacao-id" = $OperationID; "x-integration-token" = $IntegrationToken }
-            Invoke-LegacyPost "$ApiBaseUrl/api/faturamento/importar-movimentos" $Headers $Payload
-            Write-Log "Lote $($currentBatch) OK." "Green"
+            $CurrentHeaders = @{ "x-operacao-id" = $OperationID; "x-integration-token" = $IntegrationToken }
+            if ($currentBatch -eq 1) { $CurrentHeaders.Add("x-purge-today", "true") }
+            
+            try {
+                $res = Invoke-LegacyPost "$ApiBaseUrl/api/faturamento/importar-movimentos" $CurrentHeaders $Payload
+                Write-Log "Lote $($currentBatch) OK." "Green"
+            } catch {
+                Write-Log "Erro no Lote $($currentBatch): $($_.Exception.Message)" "Red"
+            }
         }
     }
 } catch {
-    Write-Log "ERRO: $($_.Exception.Message)" "Red"
+    Write-Log "ERRO CRÍTICO: $($_.Exception.Message)" "Red"
 }
+
+Write-Log "Processo Finalizado." "DarkCyan"

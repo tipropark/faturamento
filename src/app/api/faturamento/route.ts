@@ -59,21 +59,35 @@ export const GET = withAudit(async (req, session) => {
       });
   }
 
-  // Novo modo para detalhes sob demanda (Escalável - Evita carregar tudo de uma vez)
+  // Modo para detalhes sob demanda (Escalável)
   if (mode === 'details') {
     const opId = searchParams.get('operacao_id');
     const date = searchParams.get('date');
     if (!opId || !date) return NextResponse.json({ error: 'Faltam parâmetros' }, { status: 400 });
 
+    // Get headers for purge logic
+    const headersList = req.headers;
+    const purgeToday = headersList.get('x-purge-today') === 'true';
+
+    if (purgeToday && opId) {
+      const today = new Date().toISOString().split('T')[0];
+      // Delete today's movements for this operation to ensure a fresh sync
+      await supabase
+        .from('faturamento_movimentos')
+        .delete()
+        .eq('operacao_id', opId)
+        .gte('data_saida', today);
+    }
+
+    // Busca exaustiva de movimentos para o dia (Removendo ORs pesados para melhorar performance e evitar caps)
     const { data: movs, error: errMov } = await supabase
        .from('faturamento_movimentos')
        .select('*')
        .eq('operacao_id', opId)
-       .or(`data_saida.gte.${date}T00:00:00,data_entrada.gte.${date}T00:00:00,criado_em.gte.${date}T00:00:00`)
-       .or(`data_saida.lte.${date}T23:59:59,data_entrada.lte.${date}T23:59:59,criado_em.lte.${date}T23:59:59`)
-       .order('data_saida', { ascending: false, nullsFirst: false })
-       .order('criado_em', { ascending: false })
-       .limit(50000); 
+       .gte('data_saida', `${date}T00:00:00`)
+       .lte('data_saida', `${date}T23:59:59`)
+       .order('data_saida', { ascending: false })
+       .limit(10000); // 10k é seguro para a maioria das operações diárias
 
     if (errMov) return NextResponse.json({ error: errMov.message }, { status: 500 });
     return NextResponse.json(movs);
