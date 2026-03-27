@@ -11,7 +11,8 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.includes('/agente-config') ||
     pathname.startsWith('/api/faturamento/importar-movimentos') ||
-    pathname.startsWith('/api/faturamento/report-execucao')
+    pathname.startsWith('/api/faturamento/report-execucao') ||
+    pathname.includes('/api/integracoes/cloudpark')
   ) {
     if (session && pathname === '/login') {
       return NextResponse.redirect(new URL('/dashboard', request.url));
