@@ -101,8 +101,8 @@ pause
   }
 
   // Definir URL Base da API (Priorizando a informada pelo usuario)
-  const host = req.headers.get('host') || 'hub.levemobilidade.com.br';
-  const apiBaseUrl = host.includes('localhost') ? `http://${host}` : 'http://hub.levemobilidade.com.br';
+  const host = req.headers.get('host') || 'dashboard.levemobilidade.com.br';
+  const apiBaseUrl = host.includes('localhost') ? `http://${host}` : 'https://dashboard.levemobilidade.com.br';
 
   const batContent = `@echo off
 chcp 65001 >nul

@@ -4,7 +4,7 @@ $headers = @{
     "x-purge-today" = "true" 
 }
 $body = '{"movimentos": []}'
-$url = "http://hub.levemobilidade.com.br/api/faturamento/importar-movimentos"
+$url = "https://dashboard.levemobilidade.com.br/api/faturamento/importar-movimentos"
 
 Write-Host "Limpando faturamento fantasma via API..."
 $res = Invoke-RestMethod -Uri $url -Method Post -Headers $headers -Body $body -ContentType "application/json"

@@ -11,7 +11,7 @@ param(
     [string]$LocalDatabase = "C:\SgpWin\SGP.FDB",
     [string]$SqlUser = "SYSDBA",
     [string]$SqlPassword = "masterkey",
-    [string]$ApiBaseUrl = "http://hub.levemobilidade.com.br",
+    [string]$ApiBaseUrl = "https://dashboard.levemobilidade.com.br",
     [string]$FbClientPath = ""
 )
 

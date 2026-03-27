@@ -5,7 +5,7 @@
 param(
     [string]$OperationID = "2a6ba4bb-d439-4aef-94d5-f53fdaece039",
     [string]$IntegrationToken = "8d931f2e-0ebf-4023-8870-2c80d4e44804", 
-    [string]$ApiBaseUrl = "http://hub.levemobilidade.com.br", 
+    [string]$ApiBaseUrl = "https://dashboard.levemobilidade.com.br", 
     [string]$LocalDatabase = "C:\SgpWin\SGP.FDB",
     [string]$SqlUser = "SYSDBA",
     [string]$SqlPassword = "masterkey",
