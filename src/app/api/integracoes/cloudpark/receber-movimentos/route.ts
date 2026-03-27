@@ -138,6 +138,12 @@ export async function POST(req: NextRequest) {
       });
     }
 
+    // 8. Atualizar o timestamp de "Última Sincronização" na Operação
+    await supabase
+      .from('operacoes')
+      .update({ ultima_sincronizacao: new Date().toISOString() })
+      .eq('id', operacao.id);
+
     return NextResponse.json({
       success: true,
       message: 'Processamento concluído',
