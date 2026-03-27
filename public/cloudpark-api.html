@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leve ERP | Documentação de Integração CloudPark</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://api.fontshare.com/v2/css?f[]=outfit@400,500,600,700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Outfit', sans-serif; background: #0a0a0c; color: #e2e8f0; }
+        .glass { background: rgba(17, 24, 39, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
+        .gradient-text { background: linear-gradient(135deg, #a78bfa, #f472b6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        code { font-family: 'Fira Code', monospace; font-size: 0.9em; }
+        pre { position: relative; }
+        .copy-btn { position: absolute; top: 10px; right: 10px; padding: 4px 12px; background: rgba(255,255,255,0.1); border-radius: 6px; font-size: 12px; transition: 0.2s; cursor: pointer; }
+        .copy-btn:hover { background: rgba(255,255,255,0.2); }
+        .endpoint-badge { background: #6366f1; color: white; padding: 2px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8em; margin-right: 10px; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Navbar -->
+    <nav class="sticky top-0 z-50 glass px-8 py-4 flex justify-between items-center shadow-xl">
+        <div class="flex items-center gap-3">
+            <div class="w-10 h-10 bg-indigo-600 rounded-lg flex items-center justify-center font-bold text-white shadow-lg shadow-indigo-500/20">L</div>
+            <span class="text-xl font-bold tracking-tight">Leve ERP <span class="font-normal text-indigo-400">| Developers</span></span>
+        </div>
+        <div class="flex gap-6 text-sm font-medium text-gray-400">
+            <a href="#intro" class="hover:text-white transition">Início</a>
+            <a href="#auth" class="hover:text-white transition">Segurança</a>
+            <a href="#payload" class="hover:text-white transition">Payload</a>
+            <a href="#examples" class="hover:text-white transition">Exemplos</a>
+        </div>
+    </nav>
+
+    <div class="max-w-6xl mx-auto px-6 py-12">
+        <!-- Header -->
+        <header class="mb-16">
+            <h1 class="text-5xl font-bold mb-4 gradient-text">Integração CloudPark</h1>
+            <p class="text-xl text-gray-400 max-w-3xl leading-relaxed">
+                Bem-vindo ao guia oficial de integração do sistema CloudPark com o ecossistema Leve ERP. 
+                Aqui você encontrará todas as definições técnicas, schemas e exemplos práticos para alimentar o faturamento em tempo real através de Webhooks.
+            </p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-12">
+            <!-- Main Content -->
+            <div class="lg:col-span-2 space-y-12">
+                
+                <!-- Authentication -->
+                <section id="auth" class="glass p-8 rounded-2xl shadow-2xl">
+                    <h2 class="text-2xl font-bold mb-6 flex items-center gap-2">
+                        <svg class="w-6 h-6 text-yellow-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+                        Segurança e Autenticação
+                    </h2>
+                    <p class="mb-6 text-gray-300">
+                        A nossa API utiliza o padrão **HTTP Bearer Auth**. Todas as requisições devem incluir o cabeçalho <code>Authorization</code> para serem processadas.
+                    </p>
+                    <div class="bg-black/50 p-6 rounded-xl border border-indigo-500/30">
+                        <span class="text-indigo-400 text-sm font-semibold mb-2 block uppercase uppercase tracking-wider">Bearer Token</span>
+                        <code class="text-gray-100 break-all">dc952bbb65a31755a53a830233cfe452bd4feca4f42add52e26a3b8a3babd9e0</code>
+                    </div>
+                </section>
+
+                <!-- Endpoint -->
+                <section id="endpoint" class="space-y-6">
+                    <h2 class="text-2xl font-bold mb-6">Endpoints</h2>
+                    <div class="glass p-6 rounded-2xl">
+                        <div class="flex items-center mb-4">
+                            <span class="endpoint-badge">POST</span>
+                            <code class="text-indigo-300 font-bold">/api/integracoes/cloudpark/receber-movimentos</code>
+                        </div>
+                        <p class="text-gray-300">Este endpoint recebe um lote de movimentos financeiros e os processa imediatamente para consolidação diária.</p>
+                    </div>
+                </section>
+
+                <!-- Payload -->
+                <section id="payload">
+                    <h2 class="text-2xl font-bold mb-6">Especificação do Payload (JSON)</h2>
+                    <div class="glass overflow-hidden rounded-2xl">
+                        <table class="w-full text-left border-collapse">
+                            <thead class="bg-white/5">
+                                <tr>
+                                    <th class="p-4 border-b border-white/10 font-bold">Campo</th>
+                                    <th class="p-4 border-b border-white/10 font-bold">Tipo</th>
+                                    <th class="p-4 border-b border-white/10 font-bold">Descrição</th>
+                                </tr>
+                            </thead>
+                            <tbody class="text-gray-300 text-sm">
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400">filial</td>
+                                    <td class="p-4">Integer</td>
+                                    <td class="p-4">Código identificador da filial da CloudPark. Deve estar mapeado no Leve ERP.</td>
+                                </tr>
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400">items[]</td>
+                                    <td class="p-4">Array</td>
+                                    <td class="p-4">Lista de transações individuais a serem processadas.</td>
+                                </tr>
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400 indent-4">↳ payday</td>
+                                    <td class="p-4">DateTime</td>
+                                    <td class="p-4">Data e hora do pagamento. Formato ISO 8601 (ex: 2024-03-31T19:57:45Z).</td>
+                                </tr>
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400 indent-4">↳ category</td>
+                                    <td class="p-4">String</td>
+                                    <td class="p-4">Categoria do movimento (ex: "AVULSO", "MENSALISTA").</td>
+                                </tr>
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400 indent-4">↳ value</td>
+                                    <td class="p-4">Decimal</td>
+                                    <td class="p-4">Valor monetário total da transação.</td>
+                                </tr>
+                                <tr class="border-b border-white/5">
+                                    <td class="p-4 font-bold text-indigo-400 indent-4">↳ payment_method</td>
+                                    <td class="p-4">String</td>
+                                    <td class="p-4">Modo de pagamento (ex: "Dinheiro", "Cartão de crédito", "Pix").</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+
+                <!-- Code Examples -->
+                <section id="examples">
+                    <h2 class="text-2xl font-bold mb-6">Exemplos de Implementação</h2>
+                    <div class="glass p-8 rounded-2xl">
+                        <div class="flex gap-4 mb-6" id="language-tabs">
+                            <button onclick="switchLang('curl')" class="tab-btn px-4 py-2 border-b-2 border-indigo-500 font-bold">cURL</button>
+                            <button onclick="switchLang('node')" class="tab-btn px-4 py-2 border-b-2 border-transparent hover:border-white/20 transition">NodeJS</button>
+                            <button onclick="switchLang('ps')" class="tab-btn px-4 py-2 border-b-2 border-transparent hover:border-white/20 transition text-indigo-400">PowerShell</button>
+                        </div>
+                        
+                        <div id="code-curl" class="lang-code bg-black/40 p-6 rounded-xl relative">
+                            <pre><code class="text-green-400">curl -X POST "https://dashboard.levemobilidade.com.br/api/integracoes/cloudpark/receber-movimentos" \
+-H "Authorization: Bearer dc952bbb65a31... \
+-H "Content-Type: application/json" \
+-d '{
+  "filial": 98,
+  "items": [{
+    "payday": "2024-03-31T19:57:45Z",
+    "value": 13.0,
+    "payment_method": "Pix"
+  }]
+}'</code></pre>
+                        </div>
+                        <!-- PowerShell (Hidden initially) -->
+                        <div id="code-ps" class="lang-code bg-black/40 p-6 rounded-xl relative hidden">
+                            <pre><code class="text-gray-100"># Envio via PowerShell
+$headers = @{ "Authorization" = "Bearer dc952b..." }
+Invoke-RestMethod -Uri "https://dashboard.levemobilidade.com.br/api/integracoes/cloudpark/receber-movimentos" `
+    -Method Post `
+    -Headers $headers `
+    -ContentType "application/json" `
+    -Body '{ "filial": 1141, "items": [...] }'</code></pre>
+                        </div>
+                    </div>
+                </section>
+
+            </div>
+
+            <!-- Sidebar -->
+            <aside class="space-y-8">
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="font-bold mb-4 text-white">Taxas e Limites</h3>
+                    <ul class="text-sm text-gray-400 space-y-3">
+                        <li class="flex justify-between"><span>Rate Limit</span> <span class="text-indigo-400 font-medium">60 req/min</span></li>
+                        <li class="flex justify-between"><span>Batch Limit</span> <span class="text-indigo-400 font-medium">50 items/req</span></li>
+                        <li class="flex justify-between"><span>Max Body</span> <span class="text-indigo-400 font-medium">2MB</span></li>
+                    </ul>
+                </div>
+
+                <div class="glass p-6 rounded-2xl border-l-4 border-indigo-500">
+                    <h3 class="font-bold mb-2 text-white">Deduplicação</h3>
+                    <p class="text-sm text-gray-300">
+                        Nossa API utiliza um hash SHA-256 (Baseado em Filial + Payday + Value + Description). Caso um movimento processado anteriormente seja enviado novamente, ele será **ignorado** pelo sistema para evitar erros contábeis.
+                    </p>
+                </div>
+
+                <div class="glass p-6 rounded-2xl">
+                    <h3 class="font-bold mb-4 text-white">Suporte Técnico</h3>
+                    <p class="text-sm text-gray-400 mb-4">Dúvidas sobre o mapeamento de filiais ou status da API?</p>
+                    <a href="mailto:suporte@levemobilidade.com.br" class="text-indigo-400 hover:underline block text-sm">suporte@levemobilidade.com.br</a>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script>
+        function switchLang(lang) {
+            document.querySelectorAll('.lang-code').forEach(el => el.classList.add('hidden'));
+            document.getElementById('code-' + lang).classList.remove('hidden');
+            
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                if(btn.innerText.toLowerCase().includes(lang === 'ps' ? 'power' : lang)) {
+                    btn.classList.add('border-indigo-500');
+                    btn.classList.remove('border-transparent');
+                } else {
+                    btn.classList.remove('border-indigo-500');
+                    btn.classList.add('border-transparent');
+                }
+            });
+        }
+    </script>
+</body>
+</html>
