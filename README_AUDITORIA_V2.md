@@ -51,3 +51,9 @@ jobs:
 ### Variáveis de Ambiente Necessárias
 - `CRON_SECRET`: Token de segurança para o job.
 - `SUPABASE_SERVICE_ROLE_KEY`: Necessária para o engine gravar os dados.
+
+## Nota Importante *(Adicionado em 2026-03-26)*
+O trigger real-time (auto-processamento na abertura da tela) foi **DESATIVADO** no código. O comentário `// DESATIVADO: REAL-TIME AUTO-TRIGGER` está presente em `alertas/route.ts`. O processamento depende exclusivamente do Job agendado.
+
+## Referência
+> ⚠️ Para documentação completa e atualizada, consulte `docs/leve_erp_documentacao_master_v3_0.md`

@@ -46,3 +46,11 @@ Para cada requisição, os seguintes cabeçalhos são obrigatórios:
 - **Segurança**: Cada operação tem seu próprio token mas o tráfego é padronizado.
 - **Manutenibilidade**: Uma única API para monitorar e dar manutenção.
 - **Escalabilidade**: Fácil adição de novas unidades sem necessidade de novos deploys de API.
+
+## Headers Opcionais *(Adicionado em 2026-03-26)*
+| Header | Descrição | Obrigatório |
+| :--- | :--- | :--- |
+| `x-purge-today` | Se `true`, limpa movimentos do dia antes de inserir novos | Não |
+
+## Referência
+> ⚠️ Para documentação completa e atualizada, consulte `docs/leve_erp_documentacao_master_v3_0.md`

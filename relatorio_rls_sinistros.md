@@ -28,13 +28,19 @@ O sistema atual já usa extensivamente o backend Next.js API Routes com a `servi
 *   **Rotas de API (`/api/sinistros/...`)**: Não haverá quebra porque a política verifica explicitamente `audit.current_user_id` que é injetado. E o backend já filtra adicionalmente por `query = query.eq('supervisor_id', userId)` em algumas rotas. A diferença é que agora o **banco de dados em si recusa dados expostos**, garantindo proteção em caso de falha ou manipulação direta via PostgREST.
 
 ### Arquivos para Revisar (Atenção):
-*   **`src/app/api/sinistros/route.ts`**: Ele já usa o `getAuditedClient` para GET e POST, o que é ótimo, o RLS funcionará perfeitamente.
-*   **`src/app/api/sinistros/[id]/route.ts`**: Utiliza `createAdminClient()` (que bypassaria o RLS se não fosse o `FORCE RLS` configurado com `getAuditedClient`), recomendo alterar `createAdminClient()` para `getAuditedClient(userId)` aqui também para garantir a segurança no Banco!
-*   **`src/app/api/sinistros/[id]/inconsistencias/route.ts`**: Utiliza `createAdminClient()`. Substitua por `getAuditedClient(userId)`.
-*   **`src/app/api/sinistros/[id]/anexos/route.ts`**: Utiliza `createAdminClient()`. Substitua por `getAuditedClient(userId)`.
-*   **`src/app/api/sinistros/relatorios/route.ts`**: Utiliza `createAdminClient()`. Substitua por `getAuditedClient(userId)` para manter relatórios apenas com dados permitidos gerados a nível de banco.
+
+> ✅ **ATUALIZAÇÃO (2026-03-26):** Todas as substituições abaixo já foram aplicadas. Nenhuma rota de sinistros usa `createAdminClient` atualmente. Todas usam `getAuditedClient(userId)`.
+
+*   ~~**`src/app/api/sinistros/route.ts`**: Ele já usa o `getAuditedClient` para GET e POST~~ → ✅ Confirmado
+*   ~~**`src/app/api/sinistros/[id]/route.ts`**: Recomendo alterar `createAdminClient()` para `getAuditedClient(userId)`~~ → ✅ Aplicado
+*   ~~**`src/app/api/sinistros/[id]/inconsistencias/route.ts`**: Substitua por `getAuditedClient(userId)`~~ → ✅ Aplicado
+*   ~~**`src/app/api/sinistros/[id]/anexos/route.ts`**: Substitua por `getAuditedClient(userId)`~~ → ✅ Aplicado
+*   ~~**`src/app/api/sinistros/relatorios/route.ts`**: Substitua por `getAuditedClient(userId)`~~ → ✅ Aplicado
 
 **Resumo da Dica Proativa:** 
-Sempre troque `createAdminClient()` nas rotas de *sinistros* por `getAuditedClient(session.user.id)` para que a nova política RLS criada seja aplicada com 100% de precisão dentro das chamadas Backend.
+~~Sempre troque `createAdminClient()` nas rotas de *sinistros* por `getAuditedClient(session.user.id)`~~ → ✅ Já concluído.
 
 A solução é completa e totalmente compatível com a arquitetura `getAuditedClient` usada no sistema.
+
+## Referência
+> ⚠️ Para documentação completa e atualizada, consulte `docs/leve_erp_documentacao_master_v3_0.md`

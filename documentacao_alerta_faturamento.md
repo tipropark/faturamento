@@ -21,7 +21,7 @@ Implementar um sistema de monitoramento automático de metas e desvios operacion
 | `DIA_ZERADO` | Faturamento Zerado | Valor = 0 em dia operacional | Crítico | 50 |
 | `SEQUENCIA_ABAIXO_META` | Seq. Abaixo Meta | 3 dias seguidos < Meta Diária | Alerta | 30 |
 | `DESVIO_META_DIARIA` | Desvio Significativo | Desvio > 25% da Meta Diária | Insight | 15 |
-| `QUEDA_BRUSCA_HIST` | Queda Brutal | Queda > 35% vs média histórica | Alerta | 25 |
+| `QUEDA_BRUSCA_HISTORICA` | Queda Brutal | Queda > 35% vs média histórica | Alerta | 25 |
 
 ## 5. Critérios de Score e Severidade
 - **Insight (Score < 20):** Desvios leves, servem para monitoramento de tendência.
@@ -41,6 +41,11 @@ O sistema aplica supressão automática nos seguintes casos:
 ## 8. Limitações
 - Depende da sincronização correta do agente local.
 - Resumos devem estar atualizados para que as regras de sequência funcionem.
+- **⚠️ IMPORTANTE:** O motor NÃO processa alertas em tempo real na abertura da tela. O processamento é feito exclusivamente via Job agendado (`/api/faturamento/alertas/processar`). A tela de auditoria apenas lê dados já persistidos. *(Atualizado em 2026-03-26)*
 
 ## 9. Versionamento
 - **v1.0 (Março/2026):** Lançamento do Motor Core e UI de auditoria.
+- **v1.1 (Março/2026):** Documentação atualizada com correção de nome de regra e limitação de processamento. *(via auditoria técnica v3.0)*
+
+## 10. Referência
+> ⚠️ Para documentação completa e atualizada, consulte `docs/leve_erp_documentacao_master_v3_0.md`

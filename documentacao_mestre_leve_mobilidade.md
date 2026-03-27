@@ -1,5 +1,12 @@
 # 📘 Documentação Mestre Oficial - Leve Mobilidade ERP
 
+> ⚠️ **DOCUMENTO LEGADO (v2)** — Atualizado em: 2026-03-26
+> Este documento foi substituído como fonte da verdade por **`docs/leve_erp_documentacao_master_v3_0.md`** (v3.0).
+> Mantido para referência histórica. ~60% do conteúdo está obsoleto.
+> Principais divergências: escopo desatualizado (2 módulos vs 13 reais), fontes incorretas (Poppins→Outfit), FAQ sobre triggers incorreto, auditoria incompleta.
+> 
+> **Para informações atualizadas, consulte `docs/leve_erp_documentacao_master_v3_0.md`**
+
 Bem-vindo(a) à documentação mestre e oficial do sistema **Leve Mobilidade ERP**.
 Este documento foi gerado a partir de uma varredura completa da arquitetura do sistema e serve como a **base fundamental e fonte da verdade** para IAs (especialmente NotebookLM), novos desenvolvedores e futuros squads de manutenção.
 
