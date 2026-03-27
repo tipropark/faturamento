@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createAdminClient } from '@/lib/supabase/server';
 import crypto from 'crypto';
 
+export const maxDuration = 300; // 5 minutos de processamento máximo
+
 /**
  * API para integração Push da CloudPark
  * POST /api/integracoes/cloudpark/receber-movimentos
