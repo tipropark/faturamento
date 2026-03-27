@@ -74,12 +74,15 @@ FROM (
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '1' THEN 'DINHEIRO'
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '2' THEN 'PIX'
             WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '4' THEN 'CONVENIO'
-            WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = '5' OR TRIM(CAST(m.COBRANCA AS VARCHAR(10))) = 'P1' THEN
+            WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) IN ('5','6','7','8','9','P1','P2','P3','P4','P5','P6','P7','P8','P9','CCR','CDE','CC','CD') THEN
                 CASE
-                    WHEN UPPER(TRIM(COALESCE(m.DESCCARTAO, ''))) CONTAINING 'CRED' THEN 'CARTAO - CREDITO'
-                    WHEN UPPER(TRIM(COALESCE(m.DESCCARTAO, ''))) CONTAINING 'DEB' THEN 'CARTAO - DEBITO'
-                    WHEN TRIM(COALESCE(m.DESCCARTAO, '')) <> '' THEN 'CARTAO - ' || UPPER(TRIM(m.DESCCARTAO))
-                    ELSE 'CARTAO'
+                    -- Prioridade para o que esta escrito no campo DESCCARTAO (Case/Accent insensivel via CONTAINING)
+                    WHEN m.DESCCARTAO CONTAINING 'CRED' OR m.DESCCARTAO CONTAINING 'CRÉD' THEN 'CARTAO - CREDITO'
+                    WHEN m.DESCCARTAO CONTAINING 'DEB' OR m.DESCCARTAO CONTAINING 'DÉB' THEN 'CARTAO - DEBITO'
+                    -- Fallbacks baseados na COBRANCA se DESCCARTAO estiver vazio ou nao conclusivo
+                    WHEN TRIM(CAST(m.COBRANCA AS VARCHAR(10))) IN ('6','P2','P4','P6','CDE','CD') THEN 'CARTAO - DEBITO'
+                    -- Padrao para outros códigos de cartaão P / 5-9 etc
+                    ELSE 'CARTAO - CREDITO'
                 END
             ELSE 'OUTROS'
         END AS forma_pagamento,
@@ -99,7 +102,19 @@ FROM (
         me.DATA_INC AS data_saida_data,
         NULL AS data_saida_hora,
         me.VALOR AS valor,
-        COALESCE(me.DESCCARTAO, me.TIPOPGTO, me.TIPO, 'Mensal') AS forma_pagamento,
+        CASE
+            WHEN TRIM(CAST(COALESCE(me.TIPOPGTO, me.TIPO) AS VARCHAR(10))) = '1' THEN 'DINHEIRO'
+            WHEN TRIM(CAST(COALESCE(me.TIPOPGTO, me.TIPO) AS VARCHAR(10))) = '2' THEN 'PIX'
+            WHEN TRIM(CAST(COALESCE(me.TIPOPGTO, me.TIPO) AS VARCHAR(10))) = '4' THEN 'CONVENIO'
+            WHEN TRIM(CAST(COALESCE(me.TIPOPGTO, me.TIPO) AS VARCHAR(10))) IN ('5','6','7','8','9','P1','P2','P3','P4','P5','P6','P7','P8','P9','CCR','CDE','CC','CD') THEN
+                CASE
+                    WHEN me.DESCCARTAO CONTAINING 'DEB' OR me.DESCCARTAO CONTAINING 'DÉB' THEN 'CARTAO - DEBITO'
+                    WHEN me.DESCCARTAO CONTAINING 'CRED' OR me.DESCCARTAO CONTAINING 'CRÉD' THEN 'CARTAO - CREDITO'
+                    WHEN TRIM(CAST(COALESCE(me.TIPOPGTO, me.TIPO) AS VARCHAR(10))) IN ('6','P2','P4','P6','CDE','CD') THEN 'CARTAO - DEBITO'
+                    ELSE 'CARTAO - CREDITO'
+                END
+            ELSE 'MENSAL'
+        END AS forma_pagamento,
         'Mensalista' AS tipo_movimento,
         COALESCE(me.DESCCARTAO, '') AS desc_cartao,
         COALESCE(me.NOME, '') AS descricao

@@ -167,6 +167,10 @@ export interface Operacao {
   evidencia_alteracoes?: string;
   data_encerramento?: string;
   obs_gerente_operacoes?: string;
+  // Integração CloudPark
+  cloudpark_filial_codigo?: number;
+  cloudpark_ativo?: boolean;
+  integracao_faturamento_tipo?: string;
 
   criado_em: string;
   atualizado_em: string;

@@ -24,7 +24,8 @@ const ESTRUTURA_FATURAMENTO = [
       "ATM Pix",
       "ATM Débito",
       "ATM Crédito",
-      "ConectCar"
+      "ConectCar",
+      "Convênio"
     ]
   },
   {
@@ -62,31 +63,33 @@ function classificarMovimento(tipo?: string, forma?: string, descricao?: string)
   const d = (descricao || '').toUpperCase();
 
   // MENSALISTA
-  if (t.includes('MENSALISTA') || d.includes('MENSALISTA')) {
+  if (t.includes('MENSALISTA') || d.includes('MENSALISTA') || t.includes('MENSAL') || d.includes('MENSAL')) {
      if (t.includes('ATM') || d.includes('ATM')) {
-        if (f.includes('DEBITO')) return "ATM Mensalista Débito";
-        if (f.includes('CREDITO')) return "ATM Mensalista Crédito";
+        if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "ATM Mensalista Débito";
+        if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "ATM Mensalista Crédito";
      }
      if (f.includes('BOLETO')) return "Mensalista Boleto";
-     if (f.includes('DEBITO')) return "Mensalista Cartão Débito";
-     if (f.includes('CREDITO')) return "Mensalista Cartão Crédito";
+     if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "Mensalista Cartão Débito";
+     if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Mensalista Cartão Crédito";
      if (f.includes('PIX')) return "Mensalista Pix";
-     if (f.includes('DINHEIRO')) return "Mensalista Dinheiro";
+     if (f.includes('DINHEIRO') || f === '1') return "Mensalista Dinheiro";
      return "Mensalista Dinheiro"; // Default for Mensalista
   }
 
   // ATM (Não mensalista)
   if (t.includes('ATM') || d.includes('ATM')) {
      if (f.includes('PIX')) return "ATM Pix";
-     if (f.includes('DEBITO')) return "ATM Débito";
-     if (f.includes('CREDITO')) return "ATM Crédito";
+     if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "ATM Débito";
+     if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "ATM Crédito";
      return "ATM Crédito"; // Default for ATM
   }
 
   // CONECTCAR
   if (t.includes('CONECTCAR') || t.includes('SEM PARAR') || t.includes('VELOE') || t.includes('TAG') || d.includes('CONECT')) return "ConectCar";
   
-  // OUTROS
+  // CONVÊNIO
+  if (t.includes('CONVENIO') || t.includes('CONVÊNIO') || f === '4') return "Convênio";
+
   // OUTROS / DESPESAS
   if (t.includes('DESPESA') || t.includes('SAIDA') || t.includes('SAÍDA') || d.includes('DESPESA') || d.includes('SAIDA') || d.includes('SAÍDA')) return "Despesa";
   if (t.includes('SANGRIA') || d.includes('SANGRIA')) return "Sangria";
@@ -94,22 +97,22 @@ function classificarMovimento(tipo?: string, forma?: string, descricao?: string)
   if (t.includes('EVENTUAL') || t.includes('CANCELAMENTO') || d.includes('EVENTUAL') || d.includes('SOBRA') || d.includes('QUEBRA')) return "Eventuais";
 
   // ROTATIVO / AVULSO
-  if (t.includes('ROTATIVO') || t.includes('AVULSO')) {
+  if (t.includes('ROTATIVO') || t.includes('AVULSO') || t === 'ROT' || t === 'AVU') {
      if (f.includes('PIX')) return "Rotativo Pix";
-     if (f.includes('DEBITO')) return "Rotativo Cartão Débito";
-     if (f.includes('CREDITO')) return "Rotativo Cartão Crédito";
-     if (f.includes('DINHEIRO')) return "Rotativo Dinheiro";
+     if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "Rotativo Cartão Débito";
+     if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Rotativo Cartão Crédito";
+     if (f.includes('DINHEIRO') || f === '1') return "Rotativo Dinheiro";
      return "Rotativo Dinheiro"; // Default for Rotativo
   }
 
   // Fallback para Receitas Diversas
   if (t.includes('RECEITA')) return "Eventuais";
 
-  // Final fallback
+  // Final fallback based on payment method
   if (f.includes('PIX')) return "Rotativo Pix";
-  if (f.includes('DEBITO')) return "Rotativo Cartão Débito";
-  if (f.includes('CREDITO')) return "Rotativo Cartão Crédito";
-  if (f.includes('DINHEIRO')) return "Rotativo Dinheiro";
+  if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "Rotativo Cartão Débito";
+  if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Rotativo Cartão Crédito";
+  if (f.includes('DINHEIRO') || f === '1') return "Rotativo Dinheiro";
 
   return "Eventuais";
 }
@@ -133,6 +136,7 @@ function getCategoriaStyles(catName: string) {
   if (name.includes('PIX')) return { icon: <Smartphone size={16} />, color: '#06b6d4', bg: '#ecfeff' };
   if (name.includes('DINHEIRO')) return { icon: <Banknote size={16} />, color: '#4ade80', bg: '#f0fdf4' };
   if (name.includes('BOLETO')) return { icon: <Ticket size={16} />, color: '#6366f1', bg: '#eef2ff' };
+  if (name.includes('CONVENIO') || name.includes('CONVÊNIO')) return { icon: <Tag size={16} />, color: '#6366f1', bg: '#eef2ff' };
   
   return { icon: <Tag size={16} />, color: '#94a3b8', bg: '#f8fafc' };
 }
@@ -514,13 +518,13 @@ export default function FaturamentoPage() {
                  (Number(official.total_mensalista_ajustado || 0)),
         expense: (Number(official.total_despesa_ajustada || 0)),
         net: (Number(official.resultado_liquido_ajustado || 0)),
-        count: (Number(official.quantidade_movimentos) || 0),
+        count: (Number(official.quantidade_movimentos || 0)),
         adjustments: dayAdjustments
       };
     }
 
     // FALLBACK SENIOR: Se não houver resumo consolidado, calcula via movimentos brutos (REAL-TIME)
-    if (tickets.length > 0) {
+    if (tickets && tickets.length > 0) {
       let revenue = 0;
       let expense = 0;
       
@@ -528,7 +532,7 @@ export default function FaturamentoPage() {
         const cat = classificarMovimento(t.tipo_movimento, t.forma_pagamento, t.descricao);
         const valor = Number(t.valor || 0);
         
-        const isExpense = cat === "Liberação" || cat === "Despesa" || cat === "Saída" || cat === "Saida";
+        const isExpense = cat === "Liberação" || cat === "Despesa" || cat === "Saída" || cat === "Saida" || cat === "Sangria";
         if (isExpense) {
           expense += valor;
         } else {
@@ -537,12 +541,12 @@ export default function FaturamentoPage() {
       });
 
       // Somar ajustes manuais ao fallback
-      const adjSum = dayAdjustments.reduce((acc, a) => acc + (a.tipo_ajuste === 'Despesa' ? -Number(a.valor) : Number(a.valor)), 0);
+      const adjSum = dayAdjustments.reduce((acc, a) => acc + (a.tipo_ajuste === 'Despesa' ? -Number(a.valor || 0) : Number(a.valor || 0)), 0);
 
       return {
         revenue,
         expense,
-        net: revenue - expense + adjSum,
+        net: (revenue - expense) + adjSum,
         count: tickets.length,
         adjustments: dayAdjustments
       };
@@ -988,7 +992,48 @@ export default function FaturamentoPage() {
              const dayData = dailySummaries.find((s: any) => s.date === activeDate);
              const adjustmentsByDay: any[] = dayData?.ajustes || [];
              
-    const byType = dayData?.resumo_tipo || {};
+             // --- Nova Lógica de Cálculo Consolidados por Meio (Financeiro Real) ---
+             // Função auxiliar para mapear meio de pagamento de forma bruta e resiliente
+             const getMeioFinanceiro = (f: string) => {
+                const uf = (f || '').toUpperCase();
+                if (uf.includes('PIX')) return "PIX";
+                if (uf.includes('DEBITO') || uf === '6' || uf === 'CD' || uf === 'CDE') return "Cartão de Débito";
+                if (uf.includes('CREDITO') || uf.includes('CARTAO') || uf === '5' || uf === 'P1' || uf === 'CC' || uf === 'CCR') return "Cartão de Crédito";
+                if (uf.includes('DINHEIRO') || uf === '1' || uf === 'DIN') return "Dinheiro";
+                return "Outros";
+             };
+
+             const consolidatedBreakdown = [
+                { label: "Dinheiro", icon: <Banknote size={18} />, color: "#22c55e", bg: "#f0fdf4" },
+                { label: "PIX", icon: <Smartphone size={18} />, color: "#06b6d4", bg: "#ecfeff" },
+                { label: "Cartão de Débito", icon: <CreditCard size={18} />, color: "#3b82f6", bg: "#eff6ff" },
+                { label: "Cartão de Crédito", icon: <CreditCard size={18} />, color: "#8b5cf6", bg: "#f5f3ff" },
+                { label: "Outros", icon: <Tag size={18} />, color: "#94a3b8", bg: "#f8fafc" }
+             ].map(item => {
+                const movs = tickets.filter((t: any) => getMeioFinanceiro(t.forma_pagamento) === item.label);
+                
+                // Cálculo Líquido: Soma Receitas, Subtrai Despesas/Saídas
+                const total = movs.reduce((sum: number, t: any) => {
+                   const isOut = t.tipo_movimento === 'Despesa' || t.tipo_movimento === 'Saída' || t.tipo_movimento === 'Sangria' || t.tipo_movimento === 'Saída';
+                   const val = Number(t.valor) || 0;
+                   return sum + (isOut ? -val : val);
+                }, 0);
+
+                // Calcular ajustes específicos para este meio no dia
+                // (Opcional, mas para bater 100% com o net, os ajustes deveriam estar associados a meios)
+                // Por enquanto ajustamos apenas o totalRevenue/totalDespesa global
+                
+                const netDay = manualStats.revenue - manualStats.expenses;
+                
+                return {
+                    ...item,
+                    total,
+                    count: movs.length,
+                    percentage: netDay > 0 ? (total / netDay) * 100 : 0
+                };
+             });
+
+             const byType = dayData?.resumo_tipo || {};
     const totalRevenue = Number(dayData?.total || 1);
     const isAjustado = dayData?.is_ajustado;
     const op = selectedOp;
@@ -1013,10 +1058,121 @@ export default function FaturamentoPage() {
                        )}
                      </div>
 
-                     <button onClick={() => setShowAjusteModal(true)} className="btn btn-primary btn-sm" style={{ borderRadius: '10px', padding: '0.5rem 1rem' }}>
+                      <button onClick={() => setShowAjusteModal(true)} className="btn btn-primary btn-sm" style={{ borderRadius: '10px', padding: '0.5rem 1rem' }}>
                         <Plus size={16} /> Lançar Ajuste
-                     </button>
-                  </header>
+                      </button>
+                   </header>
+
+                   {/* NOVO BLOCO: RESUMO EXECUTIVO POR FORMA DE PAGAMENTO (RE-DESIGN PREMIUM) */}
+                   <section style={{ 
+                     marginBottom: '2rem',
+                     display: 'flex',
+                     flexDirection: 'column',
+                     gap: '1rem'
+                   }}>
+                      <div className="card" style={{ 
+                        padding: '2rem', 
+                        background: 'white',
+                        borderRadius: '28px',
+                        boxShadow: '0 10px 40px rgba(0,0,0,0.02), 0 2px 4px rgba(0,0,0,0.01)',
+                        border: '1px solid var(--gray-100)',
+                        overflow: 'hidden'
+                      }}>
+                        <div className="flex flex-between items-center mb-8" style={{ flexWrap: 'wrap', gap: '1rem' }}>
+                          <div>
+                            <h3 className="text-xl font-black text-gray-900 m-0" style={{ letterSpacing: '-0.03em' }}>Distribuição de Receita</h3>
+                            <p className="text-muted text-[11px] font-black uppercase tracking-widest mt-1 opacity-60">Consolidação Financeira por Meio de Pagamento</p>
+                          </div>
+                          <div style={{ textAlign: 'right' }}>
+                            <div className="flex items-center gap-2 justify-end mb-1">
+                               <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#10b981' }} className="animate-pulse" />
+                               <span className="text-[10px] font-black text-muted uppercase tracking-wider">Saldo Líquido</span>
+                            </div>
+                            <span className="text-3xl font-black text-indigo-950" style={{ letterSpacing: '-0.03em' }}>{formatarMoeda(manualStats.revenue - manualStats.expense)}</span>
+                          </div>
+                        </div>
+
+                        {/* Barra Segmentada High-End */}
+                        <div style={{ 
+                          height: '16px', 
+                          width: '100%', 
+                          background: 'var(--gray-50)', 
+                          borderRadius: '20px', 
+                          display: 'flex', 
+                          overflow: 'hidden',
+                          marginBottom: '3rem',
+                          boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)',
+                          border: '1px solid var(--gray-100)'
+                        }}>
+                          {consolidatedBreakdown.filter(i => i.percentage > 0).map((item, idx) => (
+                            <div 
+                              key={item.label} 
+                              style={{ 
+                                width: `${item.percentage}%`, 
+                                background: item.color,
+                                height: '100%',
+                                transition: 'all 0.8s cubic-bezier(0.19, 1, 0.22, 1)',
+                                borderRight: idx < consolidatedBreakdown.length - 1 ? '1px solid rgba(255,255,255,0.3)' : 'none',
+                                opacity: 0.95
+                              }} 
+                              title={`${item.label}: ${item.percentage.toFixed(1)}%`}
+                            />
+                          ))}
+                        </div>
+
+                        <div className="grid gap-6" style={{ 
+                          display: 'grid', 
+                          gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))'
+                        }}>
+                           {consolidatedBreakdown.map(item => (
+                              <div key={item.label} style={{ 
+                                 background: '#fff', 
+                                 padding: '1.75rem', 
+                                 borderRadius: '24px',
+                                 border: '1px solid var(--gray-100)',
+                                 boxShadow: '0 4px 12px rgba(0,0,0,0.02)',
+                                 transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                                 display: 'flex',
+                                 flexDirection: 'column',
+                                 gap: '1.25rem',
+                                 position: 'relative'
+                              }} className="hover:border-indigo-200 hover:shadow-xl hover:translate-y-[-4px]">
+                                 {/* Accent border */}
+                                 <div style={{ position: 'absolute', top: '1.75rem', left: 0, width: '4px', height: '24px', background: item.color, borderRadius: '0 4px 4px 0' }} />
+                                 
+                                 <div className="flex flex-between items-start">
+                                    <div style={{ 
+                                      background: item.bg, 
+                                      color: item.color,
+                                      width: '48px', height: '48px',
+                                      borderRadius: '16px',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      boxShadow: `0 8px 16px ${item.color}20`,
+                                      border: `1px solid ${item.color}15`
+                                    }}>
+                                      {item.icon}
+                                    </div>
+                                    <div style={{ 
+                                      background: 'var(--gray-50)', 
+                                      color: item.color,
+                                      padding: '4px 10px',
+                                      borderRadius: '10px',
+                                      fontSize: '11px',
+                                      fontWeight: 800,
+                                      border: '1px solid var(--gray-100)'
+                                    }}>
+                                      {item.percentage.toFixed(1)}%
+                                    </div>
+                                 </div>
+                                 <div>
+                                    <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest block mb-1">{item.label}</span>
+                                    <span className="text-2xl font-black text-gray-900 block" style={{ letterSpacing: '-0.02em' }}>{formatarMoeda(item.total)}</span>
+                                 </div>
+                              </div>
+                           ))}
+                        </div>
+                      </div>
+                   </section>
 
                   <div className="grid-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))', gap: '1.25rem' }}>
                      {ESTRUTURA_FATURAMENTO.map((grupoObj) => {

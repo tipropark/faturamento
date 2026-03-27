@@ -52,6 +52,9 @@ const emptyForm = {
   script_coleta: '',
   token_integracao: '',
   integracao_faturamento_ativa: false,
+  // Integração CloudPark
+  cloudpark_filial_codigo: '',
+  cloudpark_ativo: false,
   // Campos técnicos/legados para compatibilidade
   id_legado: null,
   slug: '',
@@ -59,7 +62,9 @@ const emptyForm = {
   sql_database: '',
   automacao_tipo: '',
   supervisor: null,
-  gerente: null
+  gerente: null,
+  operacoes_automacao: [] as any[],
+  automacao: null as any
 };
 
 export default function AdminOperacoesPage() {
@@ -171,7 +176,9 @@ export default function AdminOperacoesPage() {
         sql_server: op.operacoes_automacao?.[0]?.sql_server || op.sql_server || '',
         sql_database: op.operacoes_automacao?.[0]?.sql_database || op.sql_database || '',
         token_integracao: op.token_integracao || '',
-        integracao_faturamento_ativa: !!op.integracao_faturamento_ativa
+        integracao_faturamento_ativa: !!op.integracao_faturamento_ativa,
+        cloudpark_filial_codigo: op.cloudpark_filial_codigo || '',
+        cloudpark_ativo: !!op.cloudpark_ativo
       });
       console.log('DEBUG: Operação carregada no modal:', op.id, {
         sync_db: op.operacoes_automacao?.[0]?.habilitar_faturamento,
@@ -749,10 +756,55 @@ export default function AdminOperacoesPage() {
                                     onClick={() => setFormData(p => ({ ...p, integracao_faturamento_tipo: 'api_agent' }))}
                                     style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', ...(formData.integracao_faturamento_tipo === 'api_agent' ? { background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--brand-primary)' } : { color: 'var(--gray-500)', border: 'none', background: 'transparent' })}}
                                 >
-                                    API (Envio Seguro)
+                                    API (Agente)
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setFormData(p => ({ ...p, integracao_faturamento_tipo: 'cloudpark_push' }))}
+                                    style={{ flex: 1, padding: '0.5rem', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 700, transition: 'all 0.2s', ...(formData.integracao_faturamento_tipo === 'cloudpark_push' ? { background: 'white', boxShadow: '0 2px 4px rgba(0,0,0,0.1)', color: 'var(--brand-primary)' } : { color: 'var(--gray-500)', border: 'none', background: 'transparent' })}}
+                                >
+                                    CLOUDPARK (Push)
                                 </button>
                             </div>
                           </div>
+
+                          {/* CONFIGURAÇÃO CLOUDPARK */}
+                          {formData.integracao_faturamento_tipo === 'cloudpark_push' && (
+                            <div className="mb-6 p-4" style={{ background: '#f8fafc', borderRadius: '12px', border: '2px dashed #cbd5e1' }}>
+                                <div className="flex items-center gap-2 mb-4">
+                                    <div style={{ background: 'var(--brand-primary)', color: 'white', padding: '6px', borderRadius: '8px' }}>
+                                        <Cloud size={16} />
+                                    </div>
+                                    <div style={{ fontWeight: 800, color: 'var(--gray-900)' }}>Parâmetros CloudPark</div>
+                                </div>
+                                <div className="form-grid form-grid-2">
+                                    <div className="form-group">
+                                        <label className="form-label required">Código da Filial (CloudPark)</label>
+                                        <input 
+                                            className="form-control" 
+                                            placeholder="Ex: 98"
+                                            type="number"
+                                            value={formData.cloudpark_filial_codigo} 
+                                            onChange={e => setFormData(p => ({ ...p, cloudpark_filial_codigo: e.target.value }))}
+                                            disabled={!temPermissaoEdicao}
+                                        />
+                                        <p className="text-muted text-[10px] mt-1">Este código identifica a origem no JSON de faturamento.</p>
+                                    </div>
+                                    <div className="form-group">
+                                        <label className="form-label">Status da Integração</label>
+                                        <select 
+                                            className="form-control"
+                                            value={formData.cloudpark_ativo ? 'true' : 'false'}
+                                            onChange={e => setFormData(p => ({ ...p, cloudpark_ativo: e.target.value === 'true' }))}
+                                            disabled={!temPermissaoEdicao}
+                                        >
+                                            <option value="false">Desativada (Recusar envios)</option>
+                                            <option value="true">Ativa (Aceitar envios)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+                          )}
 
                           <div className="form-grid form-grid-2 mb-6">
                             <div className="form-group">
