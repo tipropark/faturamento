@@ -68,11 +68,17 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
     ...operacaoData 
   } = body;
 
+  // Limpar campos vazios para evitar erro de sintaxe no Postgres (ex: string vazia em coluna int)
+  const sanitizedData = { ...operacaoData };
+  Object.keys(sanitizedData).forEach(key => {
+    if (sanitizedData[key] === "") sanitizedData[key] = null;
+  });
+
   // Atualizar a tabela principal
   const { data, error } = await supabase
     .from('operacoes')
     .update({ 
-      ...operacaoData, 
+      ...sanitizedData, 
       supervisor_id,
       gerente_operacoes_id,
       query_template_id,

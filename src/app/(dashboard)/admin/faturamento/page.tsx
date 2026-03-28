@@ -56,12 +56,25 @@ const ESTRUTURA_FATURAMENTO = [
   }
 ];
 
+// Helper to remove accents for robust classification
+function removerAcentos(str: string) {
+  return str.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+}
+
 // Global function for classifying movements
 function classificarMovimento(tipo?: string, forma?: string, descricao?: string): string {
-  const t = (tipo || '').toUpperCase();
-  const f = (forma || '').toUpperCase();
-  const d = (descricao || '').toUpperCase();
+  const t = removerAcentos(tipo || '').toUpperCase();
+  const f = removerAcentos(forma || '').toUpperCase();
+  const d = removerAcentos(descricao || '').toUpperCase();
 
+  // --- REGRAS ESPECÍFICAS PARA CLOUDPARK (CECON - ID 1141) ---
+  // Prioridade absoluta para as strings vindo da API da CloudPark
+  if (f.includes('DEBITO') || f.includes('DEB')) return "Rotativo Cartão Débito";
+  if (f.includes('CREDITO') || f.includes('CRE') || f.includes('CARTAO')) return "Rotativo Cartão Crédito";
+  if (f.includes('PIX') || f.includes('CONTA')) return "Rotativo Pix";
+  if (f.includes('DINHEIRO') || f.includes('DIN')) return "Rotativo Dinheiro";
+
+  // --- REGRAS GLOBAIS LEGACY (SEMPRE APÓS AS ESPECÍFICAS DA API) ---
   // MENSALISTA
   if (t.includes('MENSALISTA') || d.includes('MENSALISTA') || t.includes('MENSAL') || d.includes('MENSAL')) {
      if (t.includes('ATM') || d.includes('ATM')) {
@@ -73,7 +86,7 @@ function classificarMovimento(tipo?: string, forma?: string, descricao?: string)
      if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Mensalista Cartão Crédito";
      if (f.includes('PIX')) return "Mensalista Pix";
      if (f.includes('DINHEIRO') || f === '1') return "Mensalista Dinheiro";
-     return "Mensalista Dinheiro"; // Default for Mensalista
+     return "Mensalista Dinheiro"; 
   }
 
   // ATM (Não mensalista)
@@ -81,34 +94,17 @@ function classificarMovimento(tipo?: string, forma?: string, descricao?: string)
      if (f.includes('PIX')) return "ATM Pix";
      if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "ATM Débito";
      if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "ATM Crédito";
-     return "ATM Crédito"; // Default for ATM
+     return "ATM Crédito"; 
   }
 
-  // CONECTCAR
   if (t.includes('CONECTCAR') || t.includes('SEM PARAR') || t.includes('VELOE') || t.includes('TAG') || d.includes('CONECT')) return "ConectCar";
-  
-  // CONVÊNIO
   if (t.includes('CONVENIO') || t.includes('CONVÊNIO') || f === '4') return "Convênio";
-
-  // OUTROS / DESPESAS
   if (t.includes('DESPESA') || t.includes('SAIDA') || t.includes('SAÍDA') || d.includes('DESPESA') || d.includes('SAIDA') || d.includes('SAÍDA')) return "Despesa";
   if (t.includes('SANGRIA') || d.includes('SANGRIA')) return "Sangria";
   if (t.includes('LIBERACAO') || d.includes('LIBERACAO')) return "Liberação";
   if (t.includes('EVENTUAL') || t.includes('CANCELAMENTO') || d.includes('EVENTUAL') || d.includes('SOBRA') || d.includes('QUEBRA')) return "Eventuais";
 
-  // ROTATIVO / AVULSO
-  if (t.includes('ROTATIVO') || t.includes('AVULSO') || t === 'ROT' || t === 'AVU') {
-     if (f.includes('PIX')) return "Rotativo Pix";
-     if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "Rotativo Cartão Débito";
-     if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Rotativo Cartão Crédito";
-     if (f.includes('DINHEIRO') || f === '1') return "Rotativo Dinheiro";
-     return "Rotativo Dinheiro"; // Default for Rotativo
-  }
-
-  // Fallback para Receitas Diversas
-  if (t.includes('RECEITA')) return "Eventuais";
-
-  // Final fallback based on payment method
+  // FALLBACK PARA ROTATIVO / AVULSO
   if (f.includes('PIX')) return "Rotativo Pix";
   if (f.includes('DEBITO') || f === '6' || f === 'CD' || f === 'CDE') return "Rotativo Cartão Débito";
   if (f.includes('CREDITO') || f.includes('CARTAO') || f === '5' || f === 'P1' || f === 'CC' || f === 'CCR') return "Rotativo Cartão Crédito";
@@ -511,19 +507,8 @@ export default function FaturamentoPage() {
     // Buscar ajustes do dia
     const dayAdjustments = allAjustes.filter((a: any) => a.operacao_id === selectedOp.id && a.data_referencia === activeDate);
 
-    if (official) {
-      return {
-        revenue: (Number(official.total_receita_ajustada || 0)) + 
-                 (Number(official.total_avulso_ajustado || 0)) + 
-                 (Number(official.total_mensalista_ajustado || 0)),
-        expense: (Number(official.total_despesa_ajustada || 0)),
-        net: (Number(official.resultado_liquido_ajustado || 0)),
-        count: (Number(official.quantidade_movimentos || 0)),
-        adjustments: dayAdjustments
-      };
-    }
-
-    // FALLBACK SENIOR: Se não houver resumo consolidado, calcula via movimentos brutos (REAL-TIME)
+    // FALLBACK SENIOR: Se não houver resumo consolidado OU se o resumo estiver zerado mas temos tickets reais
+    // Usamos o cálculo em tempo real para garantir que o usuário veja os dados assim que a integração chega
     if (tickets && tickets.length > 0) {
       let revenue = 0;
       let expense = 0;
@@ -542,13 +527,33 @@ export default function FaturamentoPage() {
 
       // Somar ajustes manuais ao fallback
       const adjSum = dayAdjustments.reduce((acc, a) => acc + (a.tipo_ajuste === 'Despesa' ? -Number(a.valor || 0) : Number(a.valor || 0)), 0);
+      const calculatedNet = (revenue - expense) + adjSum;
 
+      // Se o oficial for zero ou muito menor que o calculado (indicando delay de consolidação), usa o calculado
+      const officialRev = official ? (Number(official.total_receita_ajustada || 0) + Number(official.total_avulso_ajustado || 0) + Number(official.total_mensalista_ajustado || 0)) : 0;
+      
+      if (!official || (officialRev === 0 && revenue > 0)) {
+        return {
+          revenue,
+          expense,
+          net: calculatedNet,
+          count: tickets.length,
+          adjustments: dayAdjustments,
+          isRealTime: true
+        };
+      }
+    }
+
+    if (official) {
       return {
-        revenue,
-        expense,
-        net: (revenue - expense) + adjSum,
-        count: tickets.length,
-        adjustments: dayAdjustments
+        revenue: (Number(official.total_receita_ajustada || 0)) + 
+                 (Number(official.total_avulso_ajustado || 0)) + 
+                 (Number(official.total_mensalista_ajustado || 0)),
+        expense: (Number(official.total_despesa_ajustada || 0)),
+        net: (Number(official.resultado_liquido_ajustado || 0)),
+        count: (Number(official.quantidade_movimentos || 0)),
+        adjustments: dayAdjustments,
+        isRealTime: false
       };
     }
 
@@ -995,10 +1000,11 @@ export default function FaturamentoPage() {
              // --- Nova Lógica de Cálculo Consolidados por Meio (Financeiro Real) ---
              // Função auxiliar para mapear meio de pagamento de forma bruta e resiliente
              const getMeioFinanceiro = (f: string) => {
-                const uf = (f || '').toUpperCase();
-                if (uf.includes('PIX')) return "PIX";
-                if (uf.includes('DEBITO') || uf === '6' || uf === 'CD' || uf === 'CDE') return "Cartão de Débito";
-                if (uf.includes('CREDITO') || uf.includes('CARTAO') || uf === '5' || uf === 'P1' || uf === 'CC' || uf === 'CCR') return "Cartão de Crédito";
+                const uf = removerAcentos(f || '').toUpperCase().trim().replace(/\s+/g, ' ');
+                if (uf.includes('PIX') || uf.includes('CONTA')) return "PIX";
+                // Prioridade para termos específicos vindo da CloudPark
+                if (uf.includes('DEBITO') || uf.includes('DEB') || uf === '6' || uf === 'CD' || uf === 'CDE') return "Cartão de Débito";
+                if (uf.includes('CREDITO') || uf.includes('CRE') || uf === '5' || uf === 'P1' || uf === 'CC' || uf === 'CCR' || uf.includes('CARTAO')) return "Cartão de Crédito";
                 if (uf.includes('DINHEIRO') || uf === '1' || uf === 'DIN') return "Dinheiro";
                 return "Outros";
              };
@@ -1023,13 +1029,19 @@ export default function FaturamentoPage() {
                 // (Opcional, mas para bater 100% com o net, os ajustes deveriam estar associados a meios)
                 // Por enquanto ajustamos apenas o totalRevenue/totalDespesa global
                 
-                const netDay = manualStats.revenue - manualStats.expenses;
+                const netDay = manualStats.revenue - manualStats.expense;
                 
+                // Pegar exemplos de strings não classificadas caso seja o card "Outros"
+                const unmatchedSamples = item.label === "Outros" 
+                  ? [...new Set(tickets.filter(t => getMeioFinanceiro(t.forma_pagamento) === "Outros").map(t => t.forma_pagamento))].slice(0, 2)
+                  : [];
+
                 return {
                     ...item,
                     total,
                     count: movs.length,
-                    percentage: netDay > 0 ? (total / netDay) * 100 : 0
+                    percentage: manualStats.revenue > 0 ? (Math.max(0, total) / manualStats.revenue) * 100 : 0,
+                    debug: unmatchedSamples.join(', ')
                 };
              });
 
@@ -1167,6 +1179,9 @@ export default function FaturamentoPage() {
                                  <div>
                                     <span className="text-[11px] font-black text-gray-400 uppercase tracking-widest block mb-1">{item.label}</span>
                                     <span className="text-2xl font-black text-gray-900 block" style={{ letterSpacing: '-0.02em' }}>{formatarMoeda(item.total)}</span>
+                                    {item.debug && (
+                                       <span className="text-[9px] font-bold text-danger uppercase block mt-1">Nao classificado: {item.debug}</span>
+                                    )}
                                  </div>
                               </div>
                            ))}

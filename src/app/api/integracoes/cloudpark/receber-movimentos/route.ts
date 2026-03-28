@@ -81,6 +81,8 @@ export async function POST(req: NextRequest) {
 
     // 5. Normalizar e Processar Itens
     const preparedItems = items.map((item: any) => {
+      // Log diagnóstico para identificar campos da CloudPark
+      console.log('DEBUG CLOUDPARK ITEM:', JSON.stringify(item));
       // Estratégia de Deduplicação: Hash de campos únicos
       const hashContent = `${filial}|${item.payday}|${item.value}|${item.category}|${item.payment_method}|${item.description}`;
       const integracao_hash = crypto.createHash('sha256').update(hashContent).digest('hex');
