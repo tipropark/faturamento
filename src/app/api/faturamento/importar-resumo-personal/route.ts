@@ -5,6 +5,18 @@ import { createAdminClient } from '@/lib/supabase/server';
  * API para o agente local importar RESUMO DIÁRIO de faturamento (Operações Personal)
  * POST /api/faturamento/importar-resumo-personal
  */
+/**
+ * API para o agente local importar RESUMO DIÁRIO de faturamento (Operações Personal)
+ * POST /api/faturamento/importar-resumo-personal
+ */
+
+export async function GET() {
+  return NextResponse.json({ 
+    message: 'Esta rota aceita apenas requisições POST para importação de resumos.',
+    status: 'online' 
+  }, { status: 405 });
+}
+
 export async function POST(req: NextRequest) {
   const startTime = Date.now();
   const supabase = await createAdminClient();
