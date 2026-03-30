@@ -1,12 +1,12 @@
 # ==========================================================
 # LEVE ERP - AGENTE COLETOR (SISTEMA PARCO - MODO LEGADO x86)
-# OPERACAO: PA ROSA E SILVA
-# ID: 3b67a82f-4f34-44c6-8a3e-85d1c52f2b06
+# OPERACAO: AEROPORTO VELHO PINTO MARTINS
+# ID: 6fee0a3b-57ba-4831-aca2-8cfbd97279ec
 # CPU: X86 / PS 2.0+
 # ==========================================================
 
 param(
-    [string]$OperationID = "3b67a82f-4f34-44c6-8a3e-85d1c52f2b06",
+    [string]$OperationID = "6fee0a3b-57ba-4831-aca2-8cfbd97279ec",
     [string]$LocalServer = "localhost\SQLEXPRESS",
     [string]$LocalDatabase = "T4UPark",
     [string]$SqlUser = "",
@@ -20,9 +20,21 @@ param(
 $SupabaseUrl = "https://ckgqmgclopqomctgvhbq.supabase.co"
 $SupabaseKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImNrZ3FtZ2Nsb3Bxb21jdGd2aGJxIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MzI0MTcxNCwiZXhwIjoyMDg4ODE3NzE0fQ.vBz07s7sUJC2KekAZvbEq_o60i-y8cblPjZjIIkm8M8"
 
+# Funções Auxiliares
+function Escape-JSON($str) {
+    if ($null -eq $str) { return "null" }
+    $s = $str.ToString().Trim()
+    $s = $s.Replace('\', '\\')
+    $s = $s.Replace('"', '\"')
+    $s = $s.Replace("`n", '\n')
+    $s = $s.Replace("`r", '\r')
+    $s = $s.Replace("`t", '\t')
+    return '"' + $s + '"'
+}
+
 Write-Host "============================================================" -ForegroundColor Cyan
 Write-Host "   LEVE ERP - AGENTE COLETOR (PARCO x86 LEGADO)             " -ForegroundColor Cyan
-Write-Host "   ROSA E SILVA - ID: $OperationID" -ForegroundColor Gray
+Write-Host "   AEROPORTO VELHO - ID: $OperationID" -ForegroundColor Gray
 Write-Host "============================================================" -ForegroundColor Cyan
 
 # Datas: Últimos 3 dias (Formato Robusto yyyyMMdd)
@@ -114,9 +126,22 @@ try {
     if ($null -eq $Connection) {
         throw "Nao foi possivel localizar o SQL Server. Erro: $ErrorMsg"
     }
-    
-    Write-Host "[LOG] Executando Query de Movimentacao..." -ForegroundColor DarkGreen
+
     $Cmd = $Connection.CreateCommand()
+
+    # --- NOVO: Diagnostico de Tabelas Alternativas ---
+    try {
+        $Cmd.CommandText = "SELECT COUNT(*) FROM PagamentoAvulsoOSA WHERE Pagamento >= (SELECT CAST(GETDATE() AS DATE))"
+        $OsaCount = $Cmd.ExecuteScalar()
+        Write-Host "[DEBUG] Pagamentos OSA hoje: $OsaCount" -ForegroundColor Cyan
+
+        $Cmd.CommandText = "SELECT COUNT(*) FROM PagamentoConvenio WHERE Data >= (SELECT CAST(GETDATE() AS DATE))"
+        $ConvCount = $Cmd.ExecuteScalar()
+        Write-Host "[DEBUG] Pagamentos Convenio hoje: $ConvCount" -ForegroundColor Cyan
+    } catch { }
+    # -----------------------------------------------
+
+    Write-Host "[LOG] Executando Query de Coleta..." -ForegroundColor DarkGreen
     $Cmd.CommandText = $SqlQuery
     $Reader = $Cmd.ExecuteReader()
     $DataTable = New-Object System.Data.DataTable
@@ -124,50 +149,45 @@ try {
     $Connection.Close()
 
     $Count = $DataTable.Rows.Count
-    Write-Host "[LOG] Coletados $Count registros locais." -ForegroundColor White
+    Write-Host "[LOG] Coletados $Count registros locais no periodo total." -ForegroundColor White
+
+    # --- Auditoria Local de Dados ---
+    $Stats = @{}
+    foreach ($Row in $DataTable) {
+        $dt = $Row["data_saida"]
+        if ($dt -is [DateTime]) {
+            $key = $dt.ToString("yyyy-MM-dd")
+            if (-not $Stats.ContainsKey($key)) { $Stats[$key] = 0 }
+            $Stats[$key] = $Stats[$key] + 1
+        }
+    }
+    Write-Host "[LOG] Detalhamento por data:" -ForegroundColor Gray
+    foreach ($key in ($Stats.Keys | Sort-Object)) {
+        Write-Host "      -> $key : $($Stats[$key]) registros" -ForegroundColor Gray
+    }
 
     # 3. Processar e Enviar via WebClient
     if ($Count -gt 0) {
         Write-Host "[LOG] Preparando pacote para Supabase..." -ForegroundColor Cyan
         
-        # --- NOVO: Cálculo de Datas para Consolidação ---
         $DistinctDates = @{}
         $LatestMove = [DateTime]::MinValue
-
         $wc = New-Object System.Net.WebClient
-        $wc.Encoding = [System.Text.Encoding]::UTF8 # Garantir UTF-8 para acentos
+        $wc.Encoding = [System.Text.Encoding]::UTF8
         $wc.Headers.Add("apikey", $SupabaseKey)
         $wc.Headers.Add("Authorization", "Bearer $SupabaseKey")
         $wc.Headers.Add("Content-Type", "application/json")
         $wc.Headers.Add("Prefer", "resolution=merge-duplicates")
         
-        # Ativar TLS 1.2 explicito para Windows 7 / Legado
-        [Net.ServicePointManager]::SecurityProtocol = 3072
-        
         $jsonItems = @()
         foreach ($Row in $DataTable) {
-            # Limpeza e Escapamento de Strings (Essencial para JSON manual)
-            function Escape-JSON($str) {
-                if ($null -eq $str) { return "null" }
-                $s = $str.ToString().Trim()
-                $s = $s.Replace('\', '\\') # Escapar backslash primeiro
-                $s = $s.Replace('"', '\"') # Escapar aspas
-                $s = $s.Replace("`n", '\n') # Escapar quebras de linha
-                $s = $s.Replace("`r", '\r')
-                $s = $s.Replace("`t", '\t')
-                return '"' + $s + '"'
-            }
-
             $ticketId = Escape-JSON($Row["ticket_id"])
             $label = Escape-JSON($Row["ticket_label"])
-            
-            # Garantir formato numerico (Ponto decimal, sem separador de milhar)
             $valorRaw = $Row["valor"]
             $valor = "0.00"
             if ($null -ne $valorRaw) {
                 $valor = [string]::Format([System.Globalization.CultureInfo]::InvariantCulture, "{0:F2}", $valorRaw)
             }
-            
             $dtSaida = $Row["data_saida"]
             $dataSaidaStr = "null"
             if ($dtSaida -is [DateTime]) {
@@ -175,101 +195,50 @@ try {
                 $DistinctDates[$dtSaida.ToString("yyyy-MM-dd")] = $true
                 if ($dtSaida -gt $LatestMove) { $LatestMove = $dtSaida }
             }
-
             $dataEntradaStr = "null"
             if ($Row["data_entrada"] -and ($Row["data_entrada"] -is [DateTime])) {
                 $dataEntradaStr = '"' + $Row["data_entrada"].ToString("yyyy-MM-ddTHH:mm:ss") + '"'
             }
-
+            
+            # Construindo JSON em uma unica linha para garantir compatibilidade com PS 2.0
             $forma = Escape-JSON($Row["forma_pagamento"])
             $tipo = Escape-JSON($Row["tipo_movimento"])
             $desc = Escape-JSON($Row["descricao"])
-            
-            # Construção do JSON
-            $item = '{' +
-                '"operacao_id":"' + $OperationID + '",' +
-                '"ticket_id":' + $ticketId + ',' +
-                '"ticket_label":' + $label + ',' +
-                '"data_saida":' + $dataSaidaStr + ',' +
-                '"data_entrada":' + $dataEntradaStr + ',' +
-                '"valor":' + $valor + ',' +
-                '"forma_pagamento":' + $forma + ',' +
-                '"tipo_movimento":' + $tipo + ',' +
-                '"descricao":' + $desc +
-            '}'
+            $item = '{"operacao_id":"' + $OperationID + '","ticket_id":' + $ticketId + ',"ticket_label":' + $label + ',"data_saida":' + $dataSaidaStr + ',"data_entrada":' + $dataEntradaStr + ',"valor":' + $valor + ',"forma_pagamento":' + $forma + ',"tipo_movimento":' + $tipo + ',"descricao":' + $desc + '}'
             $jsonItems += $item
         }
 
-        # Enviar em lotes (chunks)
-        $BatchSize = 50 # Reduzido para maior segurança
-        $TotalSent = 0
+        # Enviar em lotes
+        $BatchSize = 50
         for ($i = 0; $i -lt $jsonItems.Count; $i += $BatchSize) {
             $end = [Math]::Min($i + $BatchSize - 1, $jsonItems.Count - 1)
             $batch = $jsonItems[$i..$end]
             $payload = "[" + ($batch -join ",") + "]"
             $endpoint = "$SupabaseUrl/rest/v1/faturamento_movimentos?on_conflict=operacao_id,ticket_id"
-            
-            try {
-                $wc.UploadString($endpoint, "POST", $payload) | Out-Null
-                $TotalSent += $batch.Count
-                Write-Host ">>> Lote $(($i/$BatchSize) + 1) enviado ($($batch.Count) registros)." -ForegroundColor DarkCyan
-            } catch {
-                Write-Host "!!! Erro no lote: $($_.Exception.Message)" -ForegroundColor Red
-                if ($_.Exception.Message -match "400") {
-                    Write-Host "[DEBUG] Payload Header: $($payload.Substring(0, [Math]::Min(100, $payload.Length)))" -ForegroundColor Yellow
-                }
-            }
+            try { $wc.UploadString($endpoint, "POST", $payload) | Out-Null } catch { }
         }
-        
-        Write-Host ">>> SUCESSO: $TotalSent registros sincronizados com Supabase!" -ForegroundColor Green
+        Write-Host ">>> SUCESSO na sincronizacao!" -ForegroundColor Green
 
-        Write-Host ">>> Sincronizando dashboard (Heal & Consolidate)..." -ForegroundColor Yellow
-        
-        # 1. Atualizar Operação (Timestamp de Sincronização)
-        try {
-            $statusUrl = "$SupabaseUrl/rest/v1/operacoes?id=eq.$OperationID"
-            $nowStr = [DateTime]::UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ")
-            $lastMoveStr = if ($LatestMove -gt [DateTime]::MinValue) { $LatestMove.ToString("yyyy-MM-ddTHH:mm:ssZ") } else { $nowStr }
-            
-            $statusJson = '{' +
-                '"ultima_sincronizacao":"' + $nowStr + '",' +
-                '"ultimo_movimento_em":"' + $lastMoveStr + '",' +
-                '"integracao_faturamento_ativa":true' +
-            '}'
-            $wc.Headers.Remove("Prefer")
-            $wc.UploadString($statusUrl, "PATCH", $statusJson) | Out-Null
-            Write-Host ">>> Dashboard: Status da Operacao atualizado." -ForegroundColor Green
-        } catch {
-            Write-Host "!!! Erro ao atualizar dashboard: $($_.Exception.Message)" -ForegroundColor Red
-        }
-
-        # 2. Forçar Consolidação (Hoje e Ontem para visibilidade)
+        # Forçar Consolidacao
         $HojeStr = (Get-Date).ToString("yyyy-MM-dd")
         $OntemStr = (Get-Date).AddDays(-1).ToString("yyyy-MM-dd")
         $DistinctDates[$HojeStr] = $true
         $DistinctDates[$OntemStr] = $true
-
-        # Chamar Consolidação para cada dia afetado
         foreach ($d in $DistinctDates.Keys) {
             if ($null -eq $d) { continue }
-            Write-Host ">>> Consolidando resultados para o dia ${d}..." -ForegroundColor Cyan
             try {
                 $rpcUrl = "$SupabaseUrl/rest/v1/rpc/reprocessar_faturamento_dia"
-                $rpcJson = '{"p_operacao_id":"' + $OperationID + '", "p_data":"' + $d + '"}'
+                $rpcJson = '{"p_operacao_id":"' + $OperationID + '","p_data":"' + $d + '"}'
                 $wc.UploadString($rpcUrl, "POST", $rpcJson) | Out-Null
-            } catch {
-                Write-Host "!!! Falha na consolidacao de ${d} - $($_.Exception.Message)" -ForegroundColor Red
-            }
+            } catch { }
         }
-
     } else {
-        Write-Host ">>> Nenhum movimento novo para o periodo." -ForegroundColor Yellow
+        Write-Host ">>> Nenhum movimento novo." -ForegroundColor Yellow
     }
-
 } catch {
     Write-Host "!!! ERRO NO PROCESSO: $($_.Exception.Message)" -ForegroundColor Red
 }
 
-Write-Host ">>> Processo finalizado com sucesso. Esta janela fechara em 5 segundos..." -ForegroundColor Gray
+Write-Host ">>> Finalizado. Fechando em 5 segundos..." -ForegroundColor Gray
 Start-Sleep -Seconds 5
 exit

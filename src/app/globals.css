@@ -1755,3 +1755,30 @@ textarea.form-control {
   }
 }
 
+/* ----------------------------------------------------------------
+   Status Summary & Premium Aura Animations
+---------------------------------------------------------------- */
+@keyframes aura-premium {
+  0% { box-shadow: 0 0 0 0 var(--aura-color); opacity: 0.85; transform: scale(0.96); }
+  50% { box-shadow: 0 0 0 8px rgba(0, 0, 0, 0); opacity: 1; transform: scale(1); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 0, 0, 0); opacity: 0.85; transform: scale(0.96); }
+}
+
+.aura-success { --aura-color: rgba(16, 185, 129, 0.4); animation: aura-premium 3s ease-in-out infinite; }
+.aura-warning { --aura-color: rgba(245, 158, 11, 0.4); animation: aura-premium 3s ease-in-out infinite; }
+.aura-danger { --aura-color: rgba(239, 68, 68, 0.4); animation: aura-premium 3s ease-in-out infinite; }
+
+.status-summary-pill {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  font-variant-numeric: tabular-nums;
+  cursor: help;
+}
+.status-summary-pill:hover {
+  transform: translateY(-2px);
+  background: white !important;
+  box-shadow: 0 10px 20px -5px rgba(0, 0, 0, 0.08) !important;
+  border-color: var(--gray-200) !important;
+}
+
+
+

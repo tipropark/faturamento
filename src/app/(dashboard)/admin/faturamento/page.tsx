@@ -7,7 +7,8 @@ import {
   TrendingUp, TrendingDown, Wallet, MapPin, 
   Activity, Zap, ChevronLeft, Ticket, Tag, RefreshCcw,
   CheckCircle2, AlertCircle, AlertTriangle, Clock, Wifi, WifiOff, DollarSign, PenLine, 
-  ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2, ArrowDown
+  ArrowRight, ListFilter, CreditCard, Smartphone, Calendar, User, ZapOff, Fingerprint, Banknote, Plus, Trash2, ArrowDown,
+  Cpu, Cloud, Database, ExternalLink, Layers, Ban
 } from 'lucide-react';
 import useSWR from 'swr';
 import { fetcher } from '@/lib/fetcher';
@@ -159,55 +160,67 @@ const MiniLineChart = ({ data, color = "#10b981" }: { data: number[], color?: st
   );
 };
 
-// Componente de Status de Sincronização (Saúde do Agente)
-const SyncStatusBadge = ({ lastSync, lastMove }: { lastSync: Date | null, lastMove?: Date | null }) => {
-  const getStatus = (date: Date | null, moveDate?: Date | null) => {
-    if (!date) return { 
-      label: 'Sincronizar', 
-      color: '#ef4444', 
-      bg: 'var(--danger-bg)',
-      icon: <WifiOff size={14} />,
-      desc: 'Agente nunca reportou'
-    };
+// Global helper to calculate health status
+const getOperationHealth = (lastSync: Date | string | null | undefined, lastMove: Date | string | null | undefined) => {
+  const date = lastSync ? new Date(lastSync) : null;
+  const moveDate = lastMove ? new Date(lastMove) : null;
 
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = diffMs / (1000 * 60 * 60);
-    
-    // Distinguir se o agente rodou mas não teve movimentos
-    const hasRecentMove = moveDate && (now.getTime() - moveDate.getTime()) < (6 * 3600000); // 6 horas de tolerância
-
-    if (diffHours < 6) { // Tolerância de 6 horas conforme regra de negócio
-      const mins = Math.floor(diffMs / (1000 * 60));
-      return {
-        label: hasRecentMove ? 'Sincronizado' : 'Ativo',
-        color: '#10b981',
-        bg: 'var(--success-bg)',
-        icon: <CheckCircle2 size={14} />,
-        desc: mins < 60 ? `${mins} min atrás` : `${Math.floor(diffHours)}h atrás`
-      };
-    }
-
-    if (diffHours < 24) {
-      return {
-        label: 'Atrasado',
-        color: '#f59e0b',
-        bg: 'var(--warning-bg)',
-        icon: <Clock size={14} />,
-        desc: `Último reporte há ${Math.floor(diffHours)}h`
-      };
-    }
-
-    return {
-      label: 'Desconectado',
-      color: '#ef4444', 
-      bg: 'var(--danger-bg)',
-      icon: <AlertTriangle size={14} />,
-      desc: 'Offline há mais de 24h'
-    };
+  if (!date) return { 
+    label: 'Desconectado', 
+    status: 'disconnected',
+    color: '#ef4444', 
+    bg: 'var(--danger-bg)',
+    pulseClass: 'pulse-danger',
+    icon: <AlertTriangle size={14} />,
+    desc: 'Agente nunca reportou'
   };
 
-  const status = getStatus(lastSync, lastMove);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffHours = diffMs / (1000 * 60 * 60);
+  
+  // Distinguir se o agente rodou mas não teve movimentos
+  const hasRecentMove = moveDate && (now.getTime() - moveDate.getTime()) < (6 * 3600000); // 6 horas de tolerância
+
+  if (diffHours < 6) { // Tolerância de 6 horas conforme regra de negócio
+    const mins = Math.floor(diffMs / (1000 * 60));
+    return {
+      label: hasRecentMove ? 'Sincronizado' : 'Ativo',
+      status: 'active',
+      color: '#10b981',
+      bg: 'var(--success-bg)',
+      pulseClass: 'pulse-success',
+      icon: <CheckCircle2 size={14} />,
+      desc: mins < 60 ? `${mins} min atrás` : `${Math.floor(diffHours)}h atrás`
+    };
+  }
+
+  if (diffHours < 24) {
+    return {
+      label: 'Atrasado',
+      status: 'delayed',
+      color: '#f59e0b',
+      bg: 'var(--warning-bg)',
+      pulseClass: 'pulse-warning',
+      icon: <Clock size={14} />,
+      desc: `Último reporte há ${Math.floor(diffHours)}h`
+    };
+  }
+
+  return {
+    label: 'Desconectado',
+    status: 'disconnected',
+    color: '#ef4444', 
+    bg: 'var(--danger-bg)',
+    pulseClass: 'pulse-danger',
+    icon: <AlertTriangle size={14} />,
+    desc: 'Offline há mais de 24h'
+  };
+};
+
+// Componente de Status de Sincronização (Saúde do Agente)
+const SyncStatusBadge = ({ lastSync, lastMove }: { lastSync: Date | null, lastMove?: Date | null }) => {
+  const status = getOperationHealth(lastSync, lastMove);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
@@ -245,6 +258,15 @@ export default function FaturamentoPage() {
   
   const [lastUpdated, setLastUpdated] = useState<Date>(new Date());
   useEffect(() => { if (data) setLastUpdated(new Date()); }, [data]);
+
+  // Cálculo do Resumo de Status Geral
+  const statusSummary = useMemo(() => {
+    return operations.reduce((acc: any, op: any) => {
+      const { status } = getOperationHealth(op.ultima_sincronizacao, op.ultimo_movimento_em);
+      acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, { active: 0, delayed: 0, disconnected: 0 });
+  }, [operations]);
 
   const loading = !data && !error;
   const isRefreshing = swrLoading;
@@ -752,8 +774,28 @@ export default function FaturamentoPage() {
           </section>
 
           <div>
-             <h3 className="card-title" style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Performance por Unidade</h3>
-             <p className="card-subtitle" style={{ marginBottom: '1.5rem' }}>Desempenho financeiro detalhado por carteira</p>
+          <div className="flex flex-between items-center mb-6">
+             <div>
+                <h3 className="card-title" style={{ fontSize: '1.25rem', marginBottom: '0.25rem' }}>Performance por Unidade</h3>
+                <p className="card-subtitle" style={{ marginBottom: 0 }}>Desempenho financeiro detalhado por carteira</p>
+             </div>
+
+             {/* Resumo de Status Premium UI (User Request: Arredondamento Consistente) */}
+             <div className="status-summary-pill flex items-center gap-10 bg-gray-50 py-4 px-10 border border-gray-100 shadow-sm" style={{ transform: 'translateZ(0)', borderRadius: '14px' }}>
+                {[
+                  { count: statusSummary.active, color: 'var(--success)', aura: 'aura-success', icon: <CheckCircle2 size={32} fill="currentColor" stroke="white" strokeWidth={2.5} />, title: 'Sincronização Ativa' },
+                  { count: statusSummary.delayed, color: 'var(--warning)', aura: 'aura-warning', icon: <AlertTriangle size={32} fill="currentColor" stroke="white" strokeWidth={2.5} />, title: 'Reporte Atrasado' },
+                  { count: statusSummary.disconnected, color: 'var(--danger)', aura: 'aura-danger', icon: <Ban size={32} fill="currentColor" stroke="white" strokeWidth={2.5} />, title: 'Unidades Desconectadas' }
+                ].map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-4" title={item.title}>
+                    <div className={`${item.aura} flex items-center justify-center`} style={{ color: item.color, borderRadius: '50%' }}>
+                       {item.icon}
+                    </div>
+                    <span className="text-2xl font-black text-gray-800" style={{ letterSpacing: '-0.03em', fontVariantNumeric: 'tabular-nums' }}>{item.count}</span>
+                  </div>
+                ))}
+             </div>
+          </div>
              
              <div className="grid-stack" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', gap: '1.25rem' }}>
                 {[...operations].sort((a: any, b: any) => {
@@ -786,8 +828,33 @@ export default function FaturamentoPage() {
                   return (
                     <div key={op.id} className="card stat-card" onClick={() => abrirDetalheOperacao(op)} style={{ cursor: 'pointer', minHeight: '260px' }}>
                       <header className="flex flex-between mb-4">
-                        <div style={{ background: 'var(--brand-primary-light)', padding: '0.625rem', borderRadius: '12px', color: 'var(--brand-primary)' }}>
-                          <MapPin size={22} />
+                        <div className="flex gap-2">
+                          <div style={{ background: 'var(--brand-primary-light)', padding: '0.625rem', borderRadius: '12px', color: 'var(--brand-primary)' }}>
+                            <MapPin size={22} />
+                          </div>
+                          {op.automacao_sistema && (
+                            <div 
+                              style={{ 
+                                background: 'white', 
+                                padding: '0.4rem 0.6rem', 
+                                borderRadius: '10px', 
+                                border: '1px solid var(--gray-100)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                height: '42px',
+                                overflow: 'hidden'
+                              }}
+                            >
+                              {(() => {
+                                const s = (op.automacao_sistema || '').toUpperCase();
+                                if (s.includes('PARCO')) return <img src="/logos/logo-parco.jpg" alt="PARCO" style={{ height: '24px', objectFit: 'contain' }} />;
+                                if (s.includes('CLOUDPARK')) return <img src="/logos/logo-cloudpark.png" alt="CloudPark" style={{ height: '18px', objectFit: 'contain' }} />;
+                                if (s.includes('PERSONAL')) return <img src="/logos/logo-personal.jpg" alt="Personal" style={{ height: '26px', objectFit: 'contain' }} />;
+                                return <span style={{ fontSize: '0.7rem', fontWeight: 900, color: 'var(--brand-primary)', letterSpacing: '0.05em' }}>{op.automacao_sistema}</span>;
+                              })()}
+                            </div>
+                          )}
                         </div>
                         <SyncStatusBadge lastSync={lastSyncDate} lastMove={lastMoveDate} />
                       </header>
