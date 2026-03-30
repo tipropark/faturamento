@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -r \"ANTHROPIC\\\\|OPENAI\\\\|API_KEY\" c:VibeCodingleve-erp --include=*.ts --include=*.tsx --include=*.json)",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/\")",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/metas/\")",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/faturamento/\")",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/metas/operacao/[id]/\")",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/metas/tratativa/[id]/\")",
+      "Bash(ls \"c:/VibeCoding/leve-erp/src/app/\\(dashboard\\)/admin/auditoria/auditor-senior/\")"
+    ]
+  }
+}

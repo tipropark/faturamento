@@ -37,7 +37,7 @@ const navItems = [
     items: [
       { href: '/admin/faturamento', icon: DollarSign, label: 'Faturamento', perfis: ['administrador', 'diretoria', 'financeiro', 'gerente_operacoes'] as Perfil[] },
       { href: '/admin/faturamento/metas', icon: LayoutDashboard, label: 'Metas e Alertas', perfis: ['administrador', 'diretoria', 'financeiro', 'auditoria'] as Perfil[] },
-      { href: '/admin/auditoria/metas', icon: ShieldCheck, label: 'Auditoria de faturamentos', perfis: ['administrador', 'auditoria', 'diretoria'] as Perfil[] },
+      { href: '/admin/auditoria', icon: ShieldCheck, label: 'Auditoria', perfis: ['administrador', 'auditoria', 'diretoria'] as Perfil[] },
       { href: '/sinistros', icon: AlertTriangle, label: 'Sinistros' },
       { href: '/tarifarios', icon: ClipboardList, label: 'Tarifários e Convênios', perfis: ['administrador', 'diretoria', 'supervisor', 'ti'] as Perfil[] },
     ]
@@ -63,7 +63,7 @@ const navItems = [
       { href: '/admin/operacoes', icon: ClipboardList, label: 'Gerenciar Operações', perfis: ['administrador','administrativo','diretoria'] as Perfil[] },
       { href: '/admin/permissoes', icon: ShieldCheck, label: 'Perfis e Permissões', perfis: ['administrador','ti'] as Perfil[] },
       { href: '/admin/configuracoes', icon: Settings, label: 'Configurações do Sistema', perfis: ['administrador','ti'] as Perfil[] },
-      { href: '/admin/auditoria', icon: LucideHistory, label: 'Log de Auditoria', perfis: ['administrador','ti'] as Perfil[] },
+      { href: '/admin/auditoria', icon: LucideHistory, label: 'Auditoria', perfis: ['administrador','ti'] as Perfil[] },
     ]
   },
 ];
