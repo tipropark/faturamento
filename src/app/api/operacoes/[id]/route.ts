@@ -187,9 +187,15 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const body = await req.json();
   const supabase = await createAdminClient();
 
+  // Limpar campos vazios para evitar erro de sintaxe no Postgres (ex: string vazia em coluna int)
+  const sanitizedData = { ...body };
+  Object.keys(sanitizedData).forEach(key => {
+    if (sanitizedData[key] === "") sanitizedData[key] = null;
+  });
+
   const { data, error } = await supabase
     .from('operacoes')
-    .update(body)
+    .update(sanitizedData)
     .eq('id', id)
     .select()
     .single();

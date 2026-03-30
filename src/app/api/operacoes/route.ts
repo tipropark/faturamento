@@ -68,10 +68,16 @@ export const POST = withAudit(async (req, session) => {
     ...operacaoData 
   } = body;
 
+  // Limpar campos vazios para evitar erro de sintaxe no Postgres (ex: string vazia em coluna int)
+  const sanitizedData = { ...operacaoData };
+  Object.keys(sanitizedData).forEach(key => {
+    if (sanitizedData[key] === "") sanitizedData[key] = null;
+  });
+
   const { data, error } = await supabase
     .from('operacoes')
     .insert({ 
-      ...operacaoData, 
+      ...sanitizedData, 
       supervisor_id,
       gerente_operacoes_id,
       query_template_id,
@@ -82,7 +88,7 @@ export const POST = withAudit(async (req, session) => {
       script_coleta,
       sql_server,
       sql_database,
-      token_integracao: operacaoData.token_integracao || crypto.randomUUID()
+      token_integracao: sanitizedData.token_integracao || crypto.randomUUID()
     })
     .select()
     .single();
