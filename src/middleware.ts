@@ -11,6 +11,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/api/auth') ||
     pathname.includes('/agente-config') ||
     pathname.startsWith('/api/faturamento/importar-movimentos') ||
+    pathname.startsWith('/api/faturamento/importar-resumo-personal') ||
     pathname.startsWith('/api/faturamento/report-execucao') ||
     pathname.includes('/api/integracoes/cloudpark')
   ) {

@@ -69,7 +69,8 @@ export const POST = withAudit(async (req, session) => {
   const supabase = await getAuditedClient(userId);
 
   // 1. Validar Duplicidade
-  const opId = body.tipo_meta === 'global' ? null : body.operacao_id;
+  const isUUID = (val: any) => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(val);
+  const opId = isUUID(body.operacao_id) ? body.operacao_id : null;
   
   let checkQuery = supabase
     .from('metas_faturamento')
@@ -90,8 +91,9 @@ export const POST = withAudit(async (req, session) => {
   }
 
   // 2. Criar Meta
+  const { operacao_id: bodyOpId, ...sanitizedBody } = body;
   const payload = {
-    ...body,
+    ...sanitizedBody,
     operacao_id: opId,
     criado_por_id: userId,
     status: 'ativa'

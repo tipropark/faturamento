@@ -281,56 +281,61 @@ export default function AuditoriaFaturamentoPage() {
                   </tr>
                </thead>
                <tbody>
-                  {operacoes.length === 0 ? (
-                    <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Nenhuma ocorrência ativa no radar.</td></tr>
-                  ) : operacoes.map((op) => {
-                    const opAlertas = alertas.filter(a => String(a.operacao_id) === String(op.id));
-                    const hasAlerts = opAlertas.length > 0;
-                    const totalCriticos = opAlertas.filter(a => a.status === 'novo' && a.severidade === 'critica').length;
-                    const totalEmTratativa = opAlertas.filter(a => ['em_analise', 'resolvendo'].includes(a.status)).length;
-                    const totalResolvidos = opAlertas.filter(a => ['resolvido', 'justificado'].includes(a.status)).length;
+                  {(() => {
+                    const opsComAlertas = operacoes.filter(op => 
+                      alertas.some(a => String(a.operacao_id) === String(op.id))
+                    );
 
-                    let statusText = 'Sem Ocorrências';
-                    let statusColor = '#22C55E';
+                    if (opsComAlertas.length === 0) {
+                      return (
+                        <tr><td colSpan={5} style={{ padding: '4rem', textAlign: 'center', color: '#94A3B8' }}>Nenhuma ocorrência ativa no radar. Todas as unidades estão auditadas ou sem desvios.</td></tr>
+                      );
+                    }
 
-                    if (hasAlerts) {
-                      statusText = 'Análise Pendente';
-                      statusColor = '#F59E0B';
+                    return opsComAlertas.map((op) => {
+                      const opAlertas = alertas.filter(a => String(a.operacao_id) === String(op.id));
+                      const totalCriticos = opAlertas.filter(a => a.status === 'novo' && a.severidade === 'critica').length;
+                      const totalEmTratativa = opAlertas.filter(a => ['em_analise', 'resolvendo'].includes(a.status)).length;
+                      const totalResolvidos = opAlertas.filter(a => ['resolvido', 'justificado'].includes(a.status)).length;
+
+                      let statusText = 'Análise Pendente';
+                      let statusColor = '#F59E0B';
+
                       if (totalCriticos > 0) { statusText = 'Atenção Crítica'; statusColor = '#EF4444'; }
                       else if (totalEmTratativa > 0) { statusText = 'Em Tratativa'; statusColor = '#6366F1'; }
                       else if (totalResolvidos === opAlertas.length && opAlertas.length > 0) { statusText = 'Auditado'; statusColor = '#10B981'; }
-                    }
 
-                    return (
-                       <tr key={op.id} className="hover-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
-                          <td style={{ padding: '1.25rem 2rem' }}>
-                             <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#1E293B' }}>{op.nome_operacao || 'Operação'}</div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', fontSize: '0.8125rem', color: '#475569', fontWeight: 700 }}>
-                             {new Date().toLocaleDateString('pt-BR')}
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'center' }}>
-                             <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#00008015', color: '#000080', minWidth: '32px', height: '24px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 900 }}>
-                                {opAlertas.length}
-                             </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'center' }}>
-                             <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: '#F8FAFC', borderRadius: '30px', border: '1px solid #E2E8F0' }}>
-                                <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor, boxShadow: `0 0 8px ${statusColor}80` }} />
-                                <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#334155', textTransform: 'uppercase' }}>{statusText}</span>
-                             </div>
-                          </td>
-                          <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
-                             <button
-                               onClick={() => router.push(`/admin/auditoria/faturamento/operacao/${op.id}`)}
-                               style={{ padding: '0.6rem 1.5rem', background: '#000080', color: 'white', border: 'none', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s' }}
-                             >
-                                VER AUDITORIA
-                             </button>
-                          </td>
-                       </tr>
-                    );
-                  })}
+                      return (
+                         <tr key={op.id} className="hover-row" style={{ borderBottom: '1px solid #F1F5F9', transition: 'background 0.2s' }}>
+                            <td style={{ padding: '1.25rem 2rem' }}>
+                               <div style={{ fontSize: '0.875rem', fontWeight: 800, color: '#1E293B' }}>{op.nome_operacao || 'Operação'}</div>
+                            </td>
+                            <td style={{ padding: '1.25rem 2rem', fontSize: '0.8125rem', color: '#475569', fontWeight: 700 }}>
+                               {new Date().toLocaleDateString('pt-BR')}
+                            </td>
+                            <td style={{ padding: '1.25rem 2rem', textAlign: 'center' }}>
+                               <div style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', background: '#00008015', color: '#000080', minWidth: '32px', height: '24px', borderRadius: '6px', fontSize: '0.75rem', fontWeight: 900 }}>
+                                  {opAlertas.length}
+                               </div>
+                            </td>
+                            <td style={{ padding: '1.25rem 2rem', textAlign: 'center' }}>
+                               <div style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 1rem', background: '#F8FAFC', borderRadius: '30px', border: '1px solid #E2E8F0' }}>
+                                  <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: statusColor, boxShadow: `0 0 8px ${statusColor}80` }} />
+                                  <span style={{ fontSize: '0.65rem', fontWeight: 900, color: '#334155', textTransform: 'uppercase' }}>{statusText}</span>
+                               </div>
+                            </td>
+                            <td style={{ padding: '1.25rem 2rem', textAlign: 'right' }}>
+                               <button
+                                 onClick={() => router.push(`/admin/auditoria/faturamento/operacao/${op.id}`)}
+                                 style={{ padding: '0.6rem 1.5rem', background: '#000080', color: 'white', border: 'none', borderRadius: '10px', fontSize: '0.7rem', fontWeight: 900, cursor: 'pointer', transition: 'all 0.2s' }}
+                               >
+                                  VER AUDITORIA
+                               </button>
+                            </td>
+                         </tr>
+                      );
+                    });
+                  })()}
                </tbody>
             </table>
          </div>

@@ -7,7 +7,7 @@ import {
   LayoutDashboard, Building2, Users, ShieldCheck,
   AlertTriangle, Settings, LogOut, ChevronRight,
   UserCog, ClipboardList, Briefcase, History as LucideHistory,
-  DollarSign, X, ChevronLeft, Menu
+  DollarSign, X, ChevronLeft, Menu, Cpu
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { Perfil, PERFIL_LABELS } from '@/types';
@@ -38,6 +38,7 @@ const navItems = [
       { href: '/admin/faturamento', icon: DollarSign, label: 'Faturamento', perfis: ['administrador', 'diretoria', 'financeiro', 'gerente_operacoes'] as Perfil[] },
       { href: '/admin/faturamento/metas', icon: LayoutDashboard, label: 'Metas e Alertas', perfis: ['administrador', 'diretoria', 'financeiro', 'auditoria'] as Perfil[] },
       { href: '/admin/auditoria', icon: ShieldCheck, label: 'Auditoria', perfis: ['administrador', 'auditoria', 'diretoria'] as Perfil[] },
+      { href: '/admin/tecnologia-ia', icon: Cpu, label: 'Tecnologia / IA', perfis: ['administrador', 'auditoria', 'diretoria', 'ti'] as Perfil[] },
       { href: '/sinistros', icon: AlertTriangle, label: 'Sinistros' },
       { href: '/tarifarios', icon: ClipboardList, label: 'Tarifários e Convênios', perfis: ['administrador', 'diretoria', 'supervisor', 'ti'] as Perfil[] },
     ]

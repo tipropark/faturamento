@@ -1,0 +1,25 @@
+{
+    "data_referencia": "2026-03-30",
+    "resumo": {
+        "total_avulso_original": 1000.00,
+        "total_mensalista_original": 1000.00
+    },
+    "resumo_por_forma_pagamento": {
+        "DINHEIRO": 100.00,
+        "PIX": 110.00,
+        "CARTAO_CREDITO": 120.00,
+        "CARTAO_DEBITO": 130.00,
+        "CONVENIO": 140.00
+    },
+    "resumo_por_tipo": {
+        "AVULSO": 300.00,
+        "MENSALISTA": 300.00
+    },
+    "metadata": {
+        "origem_sistema": "PERSONAL",
+        "generated_at": "2026-03-30T22:15:00-03:00",
+        "hostname": "PDV-REC-01",
+        "hash_lote": "f2f5d0d4b2b7b7fa",
+        "observacao": "Resumo diário consolidado pelo agente local"
+    }
+}

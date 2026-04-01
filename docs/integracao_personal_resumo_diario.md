@@ -19,9 +19,6 @@ A autenticação é realizada via Headers obrigatórios:
 
 > [!IMPORTANT]
 > A operação deve estar configurada com `faturamento_modo_integracao = 'personal_resumo_diario'` para aceitar requisições neste endpoint.
-## QUERY
-## UPDATE operacoes SET faturamento_modo_integracao = 
-## 'personal_resumo_diario' WHERE id = 'ID_DA_OPERACAO';
 ---
 
 ## 3. Estrutura do Payload (JSON)

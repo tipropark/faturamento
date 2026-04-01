@@ -28,7 +28,10 @@ CREATE INDEX IF NOT EXISTS idx_auditoria_criticidade ON auditoria_administrativa
 CREATE INDEX IF NOT EXISTS idx_auditoria_registro ON auditoria_administrativa(registro_id);
 
 -- View para Dashboard (Opcional, mas útil para performance)
-CREATE OR REPLACE VIEW vw_resumo_auditoria AS
+-- Adicionado security_invoker = true para respeitar o RLS do usuário logado
+CREATE OR REPLACE VIEW vw_resumo_auditoria 
+WITH (security_invoker = true)
+AS
 SELECT 
   COUNT(*) as total_eventos,
   COUNT(*) FILTER (WHERE criado_em >= NOW() - INTERVAL '24 hours') as eventos_hoje,

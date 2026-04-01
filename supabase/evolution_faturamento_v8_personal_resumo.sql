@@ -87,9 +87,15 @@ BEGIN
 
     IF v_modo_integracao = 'personal_resumo_diario' THEN
         -- 3.1a Capturar do resumo importado (Trilha Personal)
+        -- Nota: No Personal, total_receita_original costuma ser a soma total.
+        -- Para evitar duplicidade na soma do Dashboard (que faz Receita + Avulso + Mensalista),
+        -- calculamos a 'v_orig_receita' (genérica) como o que sobra.
         SELECT 
-            total_receita_original, 0, total_avulso_original, total_mensalista_original, 
-            0, -- contagem não disponível no resumo personal simplificado por enquanto
+            GREATEST(0, total_receita_original - (total_avulso_original + total_mensalista_original)), 
+            0, 
+            total_avulso_original, 
+            total_mensalista_original, 
+            0, 
             atualizado_em,
             resumo_por_tipo_json,
             resumo_por_forma_pagamento_json
@@ -98,6 +104,19 @@ BEGIN
             v_orig_count, v_last_import, v_json_tipo, v_json_forma
         FROM public.faturamento_resumo_importado
         WHERE operacao_id = p_operacao_id AND data_referencia = p_data;
+
+        -- Transformar formato FLAT (Personal) para format ESTRUTURADO (Dashboard espera {"total": X, "count": Y})
+        IF v_json_tipo IS NOT NULL AND jsonb_typeof(v_json_tipo) = 'object' THEN
+            SELECT jsonb_object_agg(key, jsonb_build_object('total', (value)::numeric, 'count', 0))
+            INTO v_json_tipo
+            FROM jsonb_each_text(v_json_tipo);
+        END IF;
+
+        IF v_json_forma IS NOT NULL AND jsonb_typeof(v_json_forma) = 'object' THEN
+            SELECT jsonb_object_agg(key, jsonb_build_object('total', (value)::numeric, 'count', 0))
+            INTO v_json_forma
+            FROM jsonb_each_text(v_json_forma);
+        END IF;
     ELSE
         -- 3.1b Capturar totais originais dos movimentos (Trilha Padrão)
         SELECT 

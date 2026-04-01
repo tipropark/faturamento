@@ -80,10 +80,36 @@ export const GET = withAudit(async (req, session) => {
   if (status) query = query.eq('status', status);
   if (severidade) query = query.eq('severidade', severidade);
 
-  const { data: alertas, error } = await query;
+  const { data: rawAlertas, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+
+  if (!rawAlertas || rawAlertas.length === 0) return NextResponse.json([]);
+
+  // Filtragem Auditoria Sênior (User Request): 
+  // Retornar apenas alertas de operações que tenham meta cadastrada (ativa) no mês/ano do alerta.
   
-  return NextResponse.json(alertas || []);
+  // 1. Mapear operações únicas presentes nos alertas para otimizar busca de metas
+  const uniqueOps = Array.from(new Set(rawAlertas.map(a => a.operacao_id)));
+  
+  // 2. Buscar todas as metas ativas para estas operações (sem filtro de mês/ano aqui para reduzir round-trips)
+  const { data: allMetas } = await supabase
+    .from('metas_faturamento')
+    .select('operacao_id, ano, mes')
+    .in('operacao_id', uniqueOps)
+    .eq('status', 'ativa');
+
+  // Criar um Set de chaves "op|ano|mes" para busca O(1)
+  const metaKeys = new Set(allMetas?.map(m => `${m.operacao_id}|${m.ano}|${m.mes}`) || []);
+
+  // 3. Filtrar a lista de alertas
+  const filteredAlertas = rawAlertas.filter(a => {
+    if (!a.data_referencia) return false;
+    // Extrair ano/mês diretamente da string YYYY-MM-DD para evitar problemas de timezone de Date
+    const [y, m] = a.data_referencia.split('-').map(Number);
+    return metaKeys.has(`${a.operacao_id}|${y}|${m}`);
+  });
+  
+  return NextResponse.json(filteredAlertas);
 });
 
 /**

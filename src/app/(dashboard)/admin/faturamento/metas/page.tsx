@@ -80,7 +80,11 @@ export default function MetasPage() {
       const res = await fetch('/api/metas-faturamento', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMeta)
+        body: JSON.stringify({
+          ...newMeta,
+          operacao_id: newMeta.operacao_id === "" ? null : newMeta.operacao_id,
+          tipo_meta: newMeta.operacao_id === "" ? 'global' : 'operacao'
+        })
       });
       if (res.ok) {
         setShowModal(false);
@@ -107,7 +111,7 @@ export default function MetasPage() {
         const updatedMetas = await res.json();
         const updatedMeta = updatedMetas[0];
         if (updatedMeta && metasData) {
-          const newData = metasData.map((m: any) => m.id === id ? updatedMeta : m);
+          const newData = metasData.map((m: MetaFaturamento) => m.id === id ? updatedMeta : m);
           fetchMetas(newData, false); 
         }
       }
@@ -287,34 +291,7 @@ export default function MetasPage() {
         </section>
       )}
 
-      {/* Tabs Navigation */}
-      <div style={{ 
-        display: 'inline-flex', 
-        background: 'rgba(255,255,255,0.5)', 
-        padding: '0.4rem', 
-        borderRadius: '18px', 
-        marginBottom: '2.5rem',
-        border: '1px solid rgba(255,255,255,0.5)',
-        backdropFilter: 'blur(10px)',
-        gap: '0.5rem'
-      }}>
-        {[
-          { id: 'mensal', label: 'Visão Mensal', icon: <BarChart3 size={18} /> },
-          { id: 'diaria', label: 'Visão Diária', icon: <Calendar size={18} /> },
-        ].map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className={`btn ${activeTab === tab.id ? 'btn-primary' : 'btn-ghost'}`}
-            style={{ borderRadius: '14px', padding: '0.6rem 1.25rem', height: 'auto' }}
-          >
-            {tab.icon}
-            <span>{tab.label}</span>
-          </button>
-        ))}
-      </div>
-
-       {/* Tab Content */}
+      {/* Tab Content */}
       <div className="tab-content">
         {activeTab === 'mensal' && (
           <div className="card" style={{ padding: '0', overflow: 'hidden' }}>
@@ -352,7 +329,7 @@ export default function MetasPage() {
                   ) : metas.length === 0 ? (
                     <tr><td colSpan={8} className="table-empty">Nenhuma meta encontrada para os filtros aplicados.</td></tr>
                   ) : (
-                    metas.map((meta) => {
+                    metas.map((meta: any) => {
                       const apuBase = (Array.isArray(meta.apuracao) ? meta.apuracao[0] : meta.apuracao) || {};
                       const hasDiarias = Array.isArray(meta.diarias) && meta.diarias.length > 0;
                       const realizado = Number(apuBase.valor_realizado) || (hasDiarias ? meta.diarias.reduce((sum: number, d: any) => sum + Number(d.valor_realizado_dia || 0), 0) : 0);
@@ -379,9 +356,16 @@ export default function MetasPage() {
                              </div>
                           </td>
                           <td>
-                            <span className={`badge ${apuBase.status_apuracao === 'no_ritmo' ? 'badge-success' : apuBase.status_apuracao === 'critica' ? 'badge-danger' : 'badge-warning'}`}>
-                              {STATUS_APURACAO_LABELS[apuBase.status_apuracao as StatusApuracaoMeta] || (realizado > 0 ? 'EM ANDAMENTO' : 'PENDENTE')}
-                            </span>
+                            {(() => {
+                              const s = (apuBase.status_apuracao || '').toUpperCase();
+                              if (s === 'NO_RITMO' || s === 'META_ATINGIDA' || s === 'ACIMA_DA_META') {
+                                return <span className="badge badge-success">ACIMA DA META</span>;
+                              }
+                              if (s === 'CRITICA' || s === 'META_NAO_ATINGIDA' || s === 'ABAIXO_DA_META') {
+                                return <span className="badge badge-danger">ABAIXO DA META</span>;
+                              }
+                              return <span className="badge badge-gray">SEM DADOS</span>;
+                            })()}
                           </td>
                           <td style={{ textAlign: 'right', paddingRight: '2rem' }}>
                             <div className="flex" style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', alignItems: 'center' }}>
@@ -416,11 +400,12 @@ export default function MetasPage() {
               <div style={{ textAlign: 'center', padding: '4rem', background: 'var(--bg-card)', borderRadius: '16px', border: '1px dashed var(--border-color)' }}>
                 <Calendar size={48} style={{ color: 'var(--text-muted)', marginBottom: '1rem' }} />
                 <h3>Detalhamento Diário</h3>
-                <p style={{ color: 'var(--text-muted)' }}>Selecione uma operação na aba Visão Mensal para visualizar o desdobramento diário.</p>
+                <p style={{ color: 'var(--text-muted)' }}>Selecione uma operação na visão principal para visualizar o desdobramento diário.</p>
+                <button onClick={() => setActiveTab('mensal')} className="btn btn-primary mt-4">Voltar para Visão Mensal</button>
               </div>
             ) : (
               (() => {
-                const meta = metas.find(m => m.id === selectedMetaId);
+                const meta = metas.find((m: any) => m.id === selectedMetaId);
                 if (!meta) return null;
                 const apu = (Array.isArray(meta.apuracao) ? meta.apuracao[0] : meta.apuracao) || {};
                 const diarias = [...(meta.diarias || [])].sort((a, b) => new Date(a.data_referencia).getTime() - new Date(b.data_referencia).getTime());
@@ -433,6 +418,12 @@ export default function MetasPage() {
 
                 return (
                   <React.Fragment key={selectedMetaId}>
+                     <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '2rem' }}>
+                        <button onClick={() => setActiveTab('mensal')} className="btn btn-ghost btn-sm">
+                           <RefreshCcw size={16} /> Voltar
+                        </button>
+                        <h2 style={{ margin: 0 }}>{meta.operacao?.nome_operacao || 'Detalhamento Diário'}</h2>
+                     </div>
                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '1.25rem', marginBottom: '3rem' }}>
                         <div className="card" style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between', height: '140px', margin: 0 }}>
                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
@@ -554,7 +545,18 @@ export default function MetasPage() {
                                  <td className="text-muted">{formatMoeda(d.meta_planejada)}</td>
                                  <td className={`font-bold ${d.desvio_dia >= 0 ? 'text-success' : 'text-danger'}`}>{formatMoeda(d.desvio_dia)}</td>
                                  <td className="font-bold text-primary">{formatMoeda(d.valor_acumulado_mes)}</td>
-                                 <td><span className={`badge ${d.status_dia.includes('meta') ? 'badge-success' : 'badge-danger'}`}>{d.status_dia.toUpperCase()}</span></td>
+                                 <td>
+                                    {(() => {
+                                      const s = (d.status_dia || '').toUpperCase();
+                                      if (s === 'ACIMA_DA_META' || s.includes('DENTRO')) {
+                                        return <span className="badge badge-success">ACIMA DA META</span>;
+                                      }
+                                      if (s === 'ABAIXO_DA_META' || s.includes('SEM_MOVIMENTO')) {
+                                        return <span className="badge badge-danger">ABAIXO DA META</span>;
+                                      }
+                                      return <span className="badge badge-gray">SEM DADOS</span>;
+                                    })()}
+                                 </td>
                                </tr>
                              ))}
                           </tbody>
@@ -576,7 +578,7 @@ export default function MetasPage() {
             <form onSubmit={handleCreateMeta} className="flex flex-col gap-4">
               <select className="form-control" value={newMeta.operacao_id} onChange={e => setNewMeta(p => ({ ...p, operacao_id: e.target.value }))} required>
                 <option value="">Selecione Operação</option>
-                {operacoes.map(op => <option key={op.id} value={op.id}>{op.nome_operacao}</option>)}
+                {operacoes.map((op: Operacao) => <option key={op.id} value={op.id}>{op.nome_operacao}</option>)}
               </select>
               <input type="number" className="form-control" value={newMeta.valor_meta || ''} onChange={e => setNewMeta(p => ({ ...p, valor_meta: Number(e.target.value) }))} placeholder="Valor da Meta" required />
               <div className="flex gap-3 mt-4">

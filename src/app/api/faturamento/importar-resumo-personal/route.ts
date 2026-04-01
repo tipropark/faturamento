@@ -61,7 +61,15 @@ export async function POST(req: NextRequest) {
       }, { status: 403 });
     }
 
-    // 4. Preparar Dados para Staging (UPSERT Idempotente)
+    // 4. Limpeza Preventiva de Movimentos Detalhados
+    // Se estamos migrando para o modo resumo, precisamos garantir que movimentos antigos
+    // não fiquem persistidos para a mesma data, o que causaria duplicidade no Dashboard.
+    await supabase.from('faturamento_movimentos').delete()
+      .eq('operacao_id', operacao_id)
+      .gte('data_saida', `${data_referencia}T00:00:00`)
+      .lte('data_saida', `${data_referencia}T23:59:59`);
+
+    // 5. Preparar Dados para Staging (UPSERT Idempotente)
     const stagingData = {
       operacao_id,
       data_referencia,
@@ -81,7 +89,7 @@ export async function POST(req: NextRequest) {
       atualizado_em: new Date().toISOString()
     };
 
-    // 5. UPSERT na Tabela de Staging
+    // 6. UPSERT na Tabela de Staging
     const { error: upsertError } = await supabase
       .from('faturamento_resumo_importado')
       .upsert(stagingData, { 
@@ -98,7 +106,7 @@ export async function POST(req: NextRequest) {
 
     const duration = Date.now() - startTime;
 
-    // 6. Registrar Log Técnico de Sincronização
+    // 7. Registrar Log Técnico de Sincronização
     await supabase.from('faturamento_sincronizacoes').insert({
       operacao_id,
       agente_id: 'API_PERSONAL_RESUMO',

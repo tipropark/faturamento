@@ -448,6 +448,7 @@ export default function FaturamentoPage() {
       net_total: s.resultado_liquido_ajustado,
       count: s.quantidade_movimentos,
       resumo_tipo: s.resumo_tipo, // CAMINHO DA VERDADE
+      resumo_forma: s.resumo_por_forma_pagamento_json,
       is_virtual: s.is_live
     })));
 
@@ -1075,7 +1076,7 @@ export default function FaturamentoPage() {
                 if (uf.includes('DINHEIRO') || uf === '1' || uf === 'DIN') return "Dinheiro";
                 return "Outros";
              };
-
+             
              const consolidatedBreakdown = [
                 { label: "Dinheiro", icon: <Banknote size={18} />, color: "#22c55e", bg: "#f0fdf4" },
                 { label: "PIX", icon: <Smartphone size={18} />, color: "#06b6d4", bg: "#ecfeff" },
@@ -1083,37 +1084,69 @@ export default function FaturamentoPage() {
                 { label: "Cartão de Crédito", icon: <CreditCard size={18} />, color: "#8b5cf6", bg: "#f5f3ff" },
                 { label: "Outros", icon: <Tag size={18} />, color: "#94a3b8", bg: "#f8fafc" }
              ].map(item => {
-                const movs = tickets.filter((t: any) => getMeioFinanceiro(t.forma_pagamento) === item.label);
-                
-                // Cálculo Líquido: Soma Receitas, Subtrai Despesas/Saídas
-                const total = movs.reduce((sum: number, t: any) => {
-                   const isOut = t.tipo_movimento === 'Despesa' || t.tipo_movimento === 'Saída' || t.tipo_movimento === 'Sangria' || t.tipo_movimento === 'Saída';
-                   const val = Number(t.valor) || 0;
-                   return sum + (isOut ? -val : val);
-                }, 0);
+                let total = 0;
+                let count = 0;
 
-                // Calcular ajustes específicos para este meio no dia
-                // (Opcional, mas para bater 100% com o net, os ajustes deveriam estar associados a meios)
-                // Por enquanto ajustamos apenas o totalRevenue/totalDespesa global
-                
-                const netDay = manualStats.revenue - manualStats.expense;
-                
-                // Pegar exemplos de strings não classificadas caso seja o card "Outros"
-                const unmatchedSamples = item.label === "Outros" 
-                  ? [...new Set(tickets.filter(t => getMeioFinanceiro(t.forma_pagamento) === "Outros").map(t => t.forma_pagamento))].slice(0, 2)
-                  : [];
+                // Se temos tickets reais (Modo Detalhado), calculamos na hora
+                if (tickets && tickets.length > 0) {
+                   const movs = tickets.filter((t: any) => getMeioFinanceiro(t.forma_pagamento) === item.label);
+                   
+                   // Cálculo Líquido: Soma Receitas, Subtrai Despesas/Saídas
+                   total = movs.reduce((sum: number, t: any) => {
+                      const isOut = t.tipo_movimento === 'Despesa' || t.tipo_movimento === 'Saída' || t.tipo_movimento === 'Sangria';
+                      const val = Number(t.valor) || 0;
+                      return sum + (isOut ? -val : val);
+                   }, 0);
+                   count = movs.length;
+                } 
+                // Senão, se temos o resumo consolidado no banco (Modo Personal/Resumo), usamos ele
+                else if (dayData?.resumo_forma) {
+                   const target = item.label.toUpperCase();
+                   
+                   for (const key of Object.keys(dayData.resumo_forma)) {
+                      const val = dayData.resumo_forma[key];
+                      const nKey = removerAcentos(key).toUpperCase();
+                      
+                      let isMatch = false;
+                      if (target.includes('DINHEIRO') && nKey.includes('DINHEIRO')) isMatch = true;
+                      else if (target === 'PIX' && nKey.includes('PIX')) isMatch = true;
+                      else if (target.includes('DEBITO') && nKey.includes('DEBITO')) isMatch = true;
+                      else if (target.includes('CREDITO') && nKey.includes('CREDITO')) isMatch = true;
+                      else if (target === 'OUTROS') {
+                         const known = (nk: string) => nk.includes('PIX') || nk.includes('DINHEIRO') || nk.includes('CREDITO') || nk.includes('DEBITO');
+                         isMatch = !known(nKey);
+                      }
+
+                      if (isMatch) {
+                         const numericVal = typeof val === 'object' ? (val.total || 0) : (val || 0);
+                         total += Number(numericVal);
+                         count += Number(val.count || 0);
+                      }
+                   }
+                }
 
                 return {
                     ...item,
                     total,
-                    count: movs.length,
-                    percentage: manualStats.revenue > 0 ? (Math.max(0, total) / manualStats.revenue) * 100 : 0,
-                    debug: unmatchedSamples.join(', ')
+                    count,
+                    percentage: manualStats.revenue > 0 ? (Math.max(0, total) / manualStats.revenue) * 100 : 0
                 };
              });
 
-             const byType = dayData?.resumo_tipo || {};
-    const totalRevenue = Number(dayData?.total || 1);
+             // Mapeamento de Tipos Personal -> Dashboard
+             const rawByType = dayData?.resumo_tipo || {};
+             const byType: any = {};
+             
+             // Transferir e traduzir chaves
+             Object.keys(rawByType).forEach(k => {
+               const val = rawByType[k];
+               const uk = k.toUpperCase();
+               if (uk === 'AVULSO') byType['Rotativo Dinheiro'] = val;
+               else if (uk === 'MENSALISTA') byType['Mensalista Dinheiro'] = val;
+               else byType[k] = val;
+             });
+
+             const totalRevenue = Number(dayData?.total || 1);
     const isAjustado = dayData?.is_ajustado;
     const op = selectedOp;
 

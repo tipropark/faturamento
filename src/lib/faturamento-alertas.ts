@@ -33,14 +33,11 @@ export class FaturamentoAlertEngine {
     const { data: calendario } = await supabase.from('faturamento_operacao_calendario').select('*').eq('operacao_id', operacaoId).single();
     const { data: feriados } = await supabase.from('faturamento_feriados').select('*').gte('data', dataInicio).lte('data', dataFim);
     
-    // 3. Carregar Meta Mensal
-    const dIni = new Date(dataInicio);
-    const { data: metas } = await supabase.from('metas_faturamento')
+    // 3. Carregar Metas Ativas da Operação
+    const { data: metasData } = await supabase.from('metas_faturamento')
       .select('*')
       .eq('operacao_id', operacaoId)
-      .eq('ano', dIni.getFullYear())
-      .eq('mes', dIni.getMonth() + 1)
-      .single();
+      .eq('status', 'ativa');
 
     // 4. Carregar Resumos Reais
     const { data: resumos } = await supabase.from('faturamento_resumo_diario')
@@ -76,9 +73,20 @@ export class FaturamentoAlertEngine {
                              (Number(resumo.total_avulso_ajustado) || 0) + 
                              (Number(resumo.total_mensalista_ajustado) || 0);
 
-      // Metas
-      const diasNoMes = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-      const metaDiaria = metas ? (Number(metas.valor_meta) || 0) / diasNoMes : 0;
+      // 7. Buscar Meta do Mês Correspondente
+      const [y, mStr] = dataRef.split('-');
+      const year = Number(y);
+      const month = Number(mStr);
+      const metaMesCurrent = metasData?.find(meta => meta.ano === year && meta.mes === month);
+      
+      // REGRA AUDITORIA SÊNIOR: Se não há meta cadastrada para o mês da operação, não geramos alerta operacional
+      if (!metaMesCurrent) {
+        // console.log(`Pulando dia ${dataRef}: Operação sem meta cadastrada para ${month}/${year}`);
+        continue; 
+      }
+
+      const diasNoMes = new Date(year, month, 0).getDate();
+      const metaDiaria = (Number(metaMesCurrent.valor_meta) || 0) / diasNoMes;
 
       // Supressão Contextual
       const isFeriado = feriados?.some(f => f.data === dataRef) || false;
