@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Zap, RefreshCcw, ShoppingCart, BookOpen, Terminal, Globe,
-  ChevronRight
+  ChevronRight, Activity
 } from 'lucide-react';
 
 const modules = [
@@ -79,6 +79,18 @@ const modules = [
     accent: '#EF4444',
     bg: '#FEF2F2',
     features: ['Uptime', 'Latência', 'Redes'],
+  },
+  {
+    id: 'logs-control-xrm',
+    href: '/admin/tecnologia-ia/logs-xrm',
+    icon: <Activity size={24} />,
+    label: 'Logs Control-XRM',
+    description: 'Monitoramento técnico da integração de faturamento externo.',
+    badge: 'Logística',
+    badgeColor: '#0ea5e9',
+    accent: '#0ea5e9',
+    bg: '#f0f9ff',
+    features: ['Real-time', 'Erros', 'Payloads'],
   },
 ];
 
