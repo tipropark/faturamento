@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
   try {
     const apiKey = req.headers.get('x-api-key');
     const systemApiKey = process.env.CONTROL_XRM_LOG_API_KEY; // Nota: Defina esta variável no seu .env
-    
+
     let supabase;
     let isAutomated = false;
 
@@ -22,25 +22,25 @@ export async function POST(req: NextRequest) {
       supabase = await createClient();
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) {
-        return NextResponse.json({ 
-          error: 'Não autorizado. Forneça uma x-api-key válida ou esteja logado.' 
+        return NextResponse.json({
+          error: 'Não autorizado. Forneça uma x-api-key válida ou esteja logado.'
         }, { status: 401 });
       }
     }
 
     const body = await req.json();
-    
+
     // Extração e validação do payload técnico
-    const { 
-      data_hora_log, 
-      nivel, 
-      etapa, 
-      mensagem, 
-      arquivo_nome, 
-      arquivo_caminho, 
-      quantidade_linhas, 
-      status_execucao, 
-      detalhes_json 
+    const {
+      data_hora_log,
+      nivel,
+      etapa,
+      mensagem,
+      arquivo_nome,
+      arquivo_caminho,
+      quantidade_linhas,
+      status_execucao,
+      detalhes_json
     } = body;
 
     if (!mensagem || !etapa || !nivel) {
@@ -108,8 +108,8 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    return NextResponse.json({ 
-      data, 
+    return NextResponse.json({
+      data,
       count,
       pagination: {
         limit,
