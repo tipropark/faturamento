@@ -1,287 +1,325 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
-  Building2, 
-  ChevronRight, 
-  ArrowLeft,
-  FileText,
-  Paperclip,
-  Save,
-  Info
+  Building2, ChevronRight, ArrowLeft, Paperclip, Send, CheckCircle2, 
+  Monitor, Users, DollarSign, Truck, Zap, Info, ChevronLeft, Tag,
+  Package, Boxes, ShieldCheck, MapPin, Briefcase, Calendar, Save
 } from 'lucide-react';
-import { CentralDepartamento, CentralCategoria, CentralSubcategoria, CentralCampoDinamico } from '@/types/central-solicitacoes';
-import { Operacao } from '@/types';
+import Link from 'next/link';
+
+const ICON_MAP: Record<string, any> = {
+  Monitor: <Monitor size={20} />,
+  Users: <Users size={20} />,
+  DollarSign: <DollarSign size={20} />,
+  Truck: <Truck size={20} />,
+};
 
 export default function NovaSolicitacaoPage() {
   const router = useRouter();
   const [step, setStep] = useState(1);
-  const [loading, setLoading] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
 
-  // States para seleção
-  const [departamentos, setDepartamentos] = useState<CentralDepartamento[]>([]);
+  const [departamentos] = useState([
+    { id: '1', nome: 'TI & Tecnologia', descricao: 'Sistemas e Acessos', icone: 'Monitor' },
+    { id: '2', nome: 'Gente & Gestão', descricao: 'RH e Benefícios', icone: 'Users' },
+    { id: '3', nome: 'Financeiro', descricao: 'Pagamentos e Notas', icone: 'DollarSign' },
+    { id: '4', nome: 'Logística', descricao: 'Frota e Suporte', icone: 'Truck' },
+  ]);
+  
+  const [categorias] = useState([
+    { id: 'c1', depto: '1', nome: 'Acesso a Sistemas Internos', sla: '24h' },
+    { id: 'c2', depto: '1', nome: 'Manutenção de Hardware', sla: '48h' },
+    { id: 'c3', depto: '1', nome: 'Dúvidas Operacionais ERP', sla: '12h' },
+  ]);
+
   const [selectedDeptoId, setSelectedDeptoId] = useState<string | null>(null);
-  
-  const [categorias, setCategorias] = useState<CentralCategoria[]>([]);
   const [selectedCatId, setSelectedCatId] = useState<string | null>(null);
-  
-  const [subcategorias, setSubcategorias] = useState<CentralSubcategoria[]>([]);
-  const [selectedSubcatId, setSelectedSubcatId] = useState<string | null>(null);
 
-  const [operacoes, setOperacoes] = useState<Operacao[]>([]);
-  const [selectedOperacaoId, setSelectedOperacaoId] = useState<string | null>(null);
-
-  const [camposDinamicos, setCamposDinamicos] = useState<CentralCampoDinamico[]>([]);
-  const [dynamicValues, setDynamicValues] = useState<Record<string, any>>({});
-
-  const [formData, setFormData] = useState({
-    titulo: '',
-    descricao: '',
-    prioridade_id: '',
-  });
-
-  // Fetch inicial de departamentos
-  useEffect(() => {
-    // Simulação de fetch para teste inicial
-    setDepartamentos([
-      { id: '1', nome: 'TI', descricao: 'Suporte Técnico', ativo: true, ordem: 1, icone: 'Monitor' },
-      { id: '2', nome: 'RH', descricao: 'Recursos Humanos', ativo: true, ordem: 2, icone: 'Users' },
-      { id: '3', nome: 'Financeiro', descricao: 'Gestão Financeira', ativo: true, ordem: 3, icone: 'DollarSign' },
-      { id: '4', nome: 'Operações', descricao: 'Suporte de Campo', ativo: true, ordem: 4, icone: 'Truck' },
-    ] as any);
-  }, []);
-
-  // Fetch categorias quando muda o depto
-  useEffect(() => {
-    if (selectedDeptoId) {
-      // Simulação de fetch
-      setCategorias([
-        { id: 'c1', departamento_id: selectedDeptoId, nome: 'Acesso a Sistema', exige_operacao: 'opcional' },
-        { id: 'c2', departamento_id: selectedDeptoId, nome: 'Hardware/Equipamento', exige_operacao: 'obrigatoria' },
-        { id: 'c3', departamento_id: selectedDeptoId, nome: 'Dúvida Operacional', exige_operacao: 'dispensada' },
-      ] as any);
-    }
-  }, [selectedDeptoId]);
-
-  // Fetch subcategorias e campos dinâmicos quando muda a cat
-  useEffect(() => {
-    if (selectedCatId) {
-      setLoading(true);
-      // Simulação
-      setTimeout(() => {
-        setSubcategorias([
-          { id: 's1', categoria_id: selectedCatId, nome: 'Bloqueio de usuário' },
-          { id: 's2', categoria_id: selectedCatId, nome: 'Mudança de perfil' },
-        ] as any);
-        setCamposDinamicos([
-          { id: 'f1', label: 'Sistema Afetado', tipo: 'select', configuracoes: ['ERP', 'Site', 'App Supervisor'], obrigatorio: true },
-          { id: 'f2', label: 'Código do Erro (se houver)', tipo: 'texto_curto', obrigatorio: false },
-        ] as any);
-        setLoading(false);
-      }, 500);
-    }
-  }, [selectedCatId]);
-
-  const handleDeptoSelect = (id: string) => {
-    setSelectedDeptoId(id);
-    setSelectedCatId(null);
-    setStep(2);
+  const handleNext = (next: number, id: string, type: 'depto' | 'cat') => {
+    if (type === 'depto') setSelectedDeptoId(id);
+    if (type === 'cat') setSelectedCatId(id);
+    setStep(next);
   };
 
-  const currentCategory = categorias.find(c => c.id === selectedCatId);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setTimeout(() => { setSuccess(true); setIsSubmitting(false); }, 1500);
+  };
+
+  if (success) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center animate-in fade-in zoom-in duration-500">
+        <div className="w-20 h-20 bg-green-50 text-green-500 rounded-full flex items-center justify-center mb-6 border border-green-100">
+          <CheckCircle2 size={40} />
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Solicitação enviada com sucesso!</h2>
+        <p className="text-gray-500 mb-8 max-w-sm">Demos início ao seu protocolo. Acompanhe o status pelo painel.</p>
+        <div className="flex gap-4">
+          <button onClick={() => router.push('/central-solicitacoes/todas')} className="btn btn-primary px-8">Ver Chamados</button>
+          <button onClick={() => window.location.reload()} className="btn btn-ghost">Nova Solicitação</button>
+        </div>
+      </div>
+    );
+  }
+
+  const currentDepto = departamentos.find(d => d.id === selectedDeptoId);
+  const currentCat = categorias.find(c => c.id === selectedCatId);
 
   return (
-    <div className="flex flex-col gap-10 max-w-4xl mx-auto py-4">
-      <header className="flex items-center gap-6">
-        <button 
-          onClick={() => step > 1 ? setStep(step - 1) : router.back()}
-          className="btn btn-secondary btn-icon"
-          title="Voltar"
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div>
-          <h1 className="page-title">Nova Solicitação</h1>
-          <p className="page-subtitle">Passo {step} de 3 — {step === 1 ? 'Selecione o Departamento de Destino' : step === 2 ? 'Defina a Categoria' : 'Preencha os Detalhes da Solicitação'}</p>
+    <div className="page-container premium-page">
+      <style jsx>{`
+        .step-card-premium {
+          background: #ffffff;
+          border: 1px solid var(--gray-100);
+          border-radius: 20px;
+          padding: 1.5rem;
+          display: flex;
+          align-items: center;
+          gap: 1.25rem;
+          cursor: pointer;
+          transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .step-card-premium:hover {
+          transform: translateY(-4px);
+          border-color: var(--brand-primary);
+          box-shadow: 0 12px 24px -10px rgba(0, 0, 80, 0.1);
+        }
+
+        .step-card-icon-box {
+          width: 48px;
+          height: 48px;
+          border-radius: 14px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          background: var(--gray-50);
+          color: var(--gray-400);
+          transition: all 0.3s;
+        }
+
+        .step-card-premium:hover .step-card-icon-box {
+          background: var(--brand-primary);
+          color: white;
+        }
+      `}</style>
+
+      <header className="page-header mb-10">
+        <div className="flex items-center justify-between w-full">
+          <div className="flex items-center gap-6">
+            <button 
+              onClick={() => step > 1 ? setStep(step - 1) : router.back()} 
+              className="btn-icon btn-sm" 
+              style={{ borderRadius: '14px', background: '#fff' }}
+              type="button"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <div>
+              <h1 className="page-title" style={{ fontSize: '2rem' }}>
+                {step === 1 ? 'Nova Solicitação' : step === 2 ? 'Escolha o Assunto' : 'Preencha os Detalhes'}
+              </h1>
+              <p className="page-subtitle">Passo {step} de 3 — Siga as instruções abaixo</p>
+            </div>
+          </div>
+
+          <div className="flex gap-2">
+            {[1, 2, 3].map(s => (
+              <div key={s} className={`h-2 w-10 rounded-full ${step >= s ? 'bg-brand-primary' : 'bg-gray-200'}`} />
+            ))}
+          </div>
         </div>
       </header>
 
-      {/* Step 1: Departamento de Destino */}
-      {step === 1 && (
-        <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {departamentos.map((depto) => (
-            <div 
-              key={depto.id} 
-              className={`card flex flex-col items-center text-center p-8 cursor-pointer transition-all hover:translate-y-[-4px] hover:shadow-lg ${selectedDeptoId === depto.id ? 'border-brand-primary bg-brand-primary-light' : ''}`}
-              onClick={() => handleDeptoSelect(depto.id)}
-            >
-              <div 
-                className="w-16 h-16 rounded-full bg-brand-primary-light text-brand-primary flex items-center justify-center mb-6"
-              >
-                <Building2 size={32} />
-              </div>
-              <div>
-                <h4 className="text-lg font-bold text-gray-900">{depto.nome}</h4>
-                <p className="text-xs text-muted mt-2 leading-relaxed">{depto.descricao}</p>
-              </div>
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Step 2: Categoria */}
-      {step === 2 && (
-        <section className="flex flex-col gap-4">
-          <h3 className="text-sm font-extrabold uppercase tracking-widest text-muted mb-4 px-2">Selecione a Categoria</h3>
-          {categorias.map((cat) => (
-            <div 
-              key={cat.id} 
-              className="card flex items-center justify-between p-6 cursor-pointer hover:border-brand-primary hover:bg-gray-50 transition-all"
-              onClick={() => {
-                setSelectedCatId(cat.id);
-                setStep(3);
-              }}
-            >
-              <div>
-                <h4 className="text-lg font-bold text-gray-900">{cat.nome}</h4>
-                <div className="flex gap-3 mt-3">
-                  {cat.exige_operacao === 'obrigatoria' && <span className="badge badge-danger">Exige Unidade</span>}
-                  {cat.exige_operacao === 'opcional' && <span className="badge badge-info">Unidade Opcional</span>}
-                  <span className="badge badge-primary">SLA: {cat.sla_conclusao_horas || 48}h</span>
-                </div>
-              </div>
-              <ChevronRight size={20} className="text-gray-300" />
-            </div>
-          ))}
-        </section>
-      )}
-
-      {/* Step 3: Detalhes */}
-      {step === 3 && (
-        <section className="card p-10">
-          <form className="flex flex-col gap-8" onSubmit={(e) => { e.preventDefault(); setSuccess(true); }}>
-            {/* Context Summary Banner */}
-            <div className="bg-gray-50 p-6 rounded-2xl border border-gray-100 flex gap-12">
-              <div className="flex flex-col gap-1">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted">Departamento Destino</span>
-                <span className="text-sm font-bold text-brand-primary">{departamentos.find(d => d.id === selectedDeptoId)?.nome}</span>
-              </div>
-              <div className="flex flex-col gap-1 border-l border-gray-200 pl-12">
-                <span className="text-[10px] font-extrabold uppercase tracking-widest text-muted">Categoria</span>
-                <span className="text-sm font-bold text-brand-primary">{currentCategory?.nome}</span>
-              </div>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label required">Título / Assunto da Solicitação</label>
-              <input 
-                type="text" 
-                className="form-control" 
-                placeholder="Exemplo: Preciso de acesso à impressora do DP" 
-                required
-              />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              {/* Subcategoria */}
-              {subcategorias.length > 0 && (
-                <div className="form-group">
-                  <label className="form-label">Subcategoria</label>
-                  <select className="form-control">
-                    <option value="">Selecione...</option>
-                    {subcategorias.map(sub => <option key={sub.id} value={sub.id}>{sub.nome}</option>)}
-                  </select>
-                </div>
-              )}
-
-              {/* Operação (Condicional) */}
-              {currentCategory?.exige_operacao !== 'dispensada' && (
-                <div className="form-group">
-                  <label className="form-label">Unidade Operacional Relacionada {currentCategory?.exige_operacao === 'obrigatoria' && '*'}</label>
-                  <select className="form-control" required={currentCategory?.exige_operacao === 'obrigatoria'}>
-                    <option value="">Selecione a unidade...</option>
-                    <option value="op1">Curitiba Store 01</option>
-                    <option value="op2">São Paulo Hospital X</option>
-                  </select>
-                  <p className="cell-sub mt-2">Vincule a uma unidade caso o problema seja local</p>
-                </div>
-              )}
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Prioridade da Solicitação</label>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {[
-                  { id: 'baixa', label: 'Baixa', class: 'badge-priority-baixa' },
-                  { id: 'normal', label: 'Normal', class: 'badge-priority-normal' },
-                  { id: 'alta', label: 'Alta', class: 'badge-priority-alta' },
-                  { id: 'urgente', label: 'Urgente', class: 'badge-priority-urgente' },
-                ].map(p => (
-                  <label key={p.id} className="flex items-center gap-3 p-4 border border-gray-100 rounded-xl cursor-pointer hover:bg-gray-50 transition-all">
-                    <input type="radio" name="prioridade" value={p.id} />
-                    <span className={`badge ${p.class} uppercase text-[10px] font-black tracking-tighter`}>{p.label}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* Campos Dinâmicos Layout Refined */}
-            {camposDinamicos.length > 0 && (
-              <div className="bg-brand-primary-light/30 p-8 rounded-2xl border border-brand-primary-light grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div className="col-span-1 md:col-span-2 flex items-center gap-2 mb-2">
-                  <Info size={16} className="text-brand-primary" />
-                  <span className="text-xs font-bold text-brand-primary uppercase tracking-wider">Informações Complementares Deste Tipo de Solicitação</span>
-                </div>
-                {camposDinamicos.map(campo => (
-                  <div key={campo.id} className="form-group">
-                    <label className="form-label">{campo.label} {campo.obrigatorio && '*'}</label>
-                    {campo.tipo === 'select' ? (
-                      <select className="form-control" required={campo.obrigatorio}>
-                        <option value="">Selecione...</option>
-                        {Array.isArray(campo.configuracoes) && campo.configuracoes.map(opt => <option key={opt} value={opt}>{opt}</option>)}
-                      </select>
-                    ) : (
-                      <input type="text" className="form-control" required={campo.obrigatorio} />
-                    )}
+      <div className="grid grid-12 gap-8 items-start">
+        <div className="col-span-8">
+          
+          {step === 1 && (
+            <div className="grid grid-2 gap-4 animate-in fade-in slide-in-from-bottom-2 duration-500">
+              {departamentos.map(d => (
+                <div key={d.id} className="step-card-premium" onClick={() => handleNext(2, d.id, 'depto')}>
+                  <div className="step-card-icon-box">
+                    {ICON_MAP[d.icone] || <Building2 size={22} />}
                   </div>
-                ))}
-              </div>
-            )}
-
-            <div className="form-group">
-              <label className="form-label">Descrição Detalhada do Chamado</label>
-              <textarea 
-                className="form-control" 
-                rows={6} 
-                placeholder="Descreva o problema ou solicitação com o máximo de detalhes possível para agilizar o atendimento..."
-                required
-              ></textarea>
-            </div>
-
-            <div className="form-group">
-              <label className="form-label">Anexos e Documentos</label>
-              <div 
-                className="border-2 border-dashed border-gray-200 rounded-2xl p-10 flex flex-col items-center justify-center bg-gray-50 cursor-pointer hover:border-brand-primary hover:bg-white transition-all group"
-              >
-                <div className="w-16 h-16 rounded-full bg-white shadow-sm flex items-center justify-center mb-4 group-hover:text-brand-primary transition-all">
-                   <Paperclip size={24} />
+                  <div className="flex-1">
+                    <h3 className="font-extrabold text-gray-900">{d.nome}</h3>
+                    <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{d.descricao}</p>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-200" />
                 </div>
-                <p className="text-sm font-bold text-gray-900">Arraste ou clique para anexar</p>
-                <p className="text-xs text-muted mt-2">Imagens (JPG/PNG), PDFs ou Prints (máx 10MB)</p>
+              ))}
+            </div>
+          )}
+
+          {step === 2 && (
+            <div className="space-y-4 animate-in fade-in slide-in-from-right-2 duration-500">
+              <div className="bg-brand-primary-light/20 p-5 rounded-2xl border border-brand-primary-light flex items-center gap-4 mb-6">
+                 <div className="w-10 h-10 bg-brand-primary text-white rounded-xl flex items-center justify-center">
+                    {ICON_MAP[currentDepto?.icone || ''] || <Building2 size={20} />}
+                 </div>
+                 <div>
+                    <span className="text-[10px] font-black text-brand-primary uppercase tracking-widest block">Área Selecionada</span>
+                    <h3 className="font-bold text-gray-900">{currentDepto?.nome}</h3>
+                 </div>
+              </div>
+
+              {categorias.filter(c => c.depto === selectedDeptoId).map(c => (
+                <div key={c.id} className="step-card-premium" onClick={() => handleNext(3, c.id, 'cat')}>
+                  <div className="step-card-icon-box" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
+                    <Zap size={20} />
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-extrabold text-gray-800">{c.nome}</h3>
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest">SLA Estimado: {c.sla}</p>
+                  </div>
+                  <ChevronRight size={18} className="text-gray-200" />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {step === 3 && (
+            <form onSubmit={handleSubmit} className="form-card-premium animate-in fade-in slide-in-from-right-2 duration-500">
+              
+              <div className="premium-form-section">
+                <div className="section-header-premium">
+                  <div className="section-icon-box">
+                    <Info size={20} />
+                  </div>
+                  <div>
+                     <h3 className="section-title-premium">Informações do Chamado</h3>
+                     <p className="text-xs text-gray-400 font-bold uppercase tracking-wider">{currentDepto?.nome} / {currentCat?.nome}</p>
+                  </div>
+                </div>
+
+                <div className="form-grid grid-2 gap-x-8 gap-y-6">
+                  <div className="form-group col-span-2 mb-0">
+                    <label className="label-premium">Título do Chamado <span className="req-dot">•</span></label>
+                    <div className="input-premium-group">
+                      <input type="text" className="input-premium" placeholder="ex: Problema no acesso ao ERP" required />
+                      <Tag className="input-icon-premium" size={18} />
+                    </div>
+                  </div>
+
+                  <div className="form-group mb-0">
+                    <label className="label-premium">Unidade Operacional <span className="req-dot">•</span></label>
+                    <div className="input-premium-group">
+                      <select className="input-premium select-premium" required>
+                        <option value="">Selecione...</option>
+                        <option value="matriz">Matriz Curitiba</option>
+                        <option value="filial-sp">Filial São Paulo</option>
+                      </select>
+                      <MapPin className="input-icon-premium" size={18} />
+                    </div>
+                  </div>
+
+                  <div className="form-group mb-0">
+                    <label className="label-premium">Prioridade Sugerida</label>
+                    <div className="input-premium-group">
+                      <select className="input-premium select-premium">
+                        <option value="normal">Normal</option>
+                        <option value="alta">Alta (Bloqueio Total)</option>
+                        <option value="baixa">Informativa / Dúvida</option>
+                      </select>
+                      <Zap className="input-icon-premium" size={18} />
+                    </div>
+                  </div>
+
+                  <div className="form-group col-span-2 mb-0">
+                    <label className="label-premium">Relato do Problema <span className="req-dot">•</span></label>
+                    <textarea 
+                      className="input-premium textarea-premium" 
+                      placeholder="Descreva aqui o que está acontecendo. Se houver erro, informe o código..."
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="premium-form-section">
+                <div className="section-header-premium">
+                  <div className="section-icon-box" style={{ background: 'var(--success-bg)', color: 'var(--success)' }}>
+                    <Paperclip size={20} />
+                  </div>
+                  <h3 className="section-title-premium">Evidências e Arquivos</h3>
+                </div>
+
+                <div className="border-2 border-dashed border-gray-100 rounded-3xl p-10 flex flex-col items-center justify-center bg-gray-50 hover:bg-white hover:border-brand-primary transition-all cursor-pointer group">
+                   <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-sm group-hover:bg-brand-primary group-hover:text-white transition-all">
+                      <Paperclip size={28} />
+                   </div>
+                   <h4 className="font-bold text-gray-900 mb-1">Arraste seus anexos aqui</h4>
+                   <p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Prints de tela ajudam muito no suporte</p>
+                </div>
+              </div>
+
+              <div className="premium-form-section bg-gray-50 flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-2 text-gray-400">
+                  <Info size={16} />
+                  <span className="text-[10px] font-black uppercase tracking-wider">Protocolo digital Leve ERP</span>
+                </div>
+                <div className="flex gap-4 w-full md:w-auto">
+                   <button 
+                    type="submit" 
+                    className="btn-premium-save"
+                    disabled={isSubmitting}
+                    style={{ width: 'auto', minWidth: '240px' }}
+                   >
+                    {isSubmitting ? 'Enviando...' : <><Send size={18} /> Registrar Solicitação</>}
+                   </button>
+                </div>
+              </div>
+            </form>
+          )}
+        </div>
+
+        <div className="col-span-4 flex flex-col gap-8">
+          <section className="form-card-premium" style={{ background: '#0C0C24', color: '#ffffff', padding: '2.5rem' }}>
+            <div className="flex flex-col gap-8">
+              <div style={{ background: 'rgba(255,255,255,0.1)', padding: '16px', borderRadius: '18px', width: 'fit-content' }}>
+                <ShieldCheck size={32} color="#ffffff" />
+              </div>
+              <div>
+                <h4 className="font-black mb-3" style={{ fontSize: '1.25rem', color: '#ffffff', letterSpacing: '-0.02em' }}>Suporte Inteligente</h4>
+                <p style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', lineHeight: '1.6', fontWeight: 500 }}>Estamos prontos para te ajudar. Siga as orientações para um atendimento rápido.</p>
+              </div>
+              
+              <div className="flex flex-col gap-6">
+                <div className="flex gap-4 items-start">
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900', color: '#ffffff', flexShrink: 0, marginTop: '2px' }}>1</div>
+                  <p style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6 }}>Seja específico no título para triagem rápida.</p>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900', color: '#ffffff', flexShrink: 0, marginTop: '2px' }}>2</div>
+                  <p style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6 }}>Anexe prints de erro para facilitar a análise técnica.</p>
+                </div>
+                <div className="flex gap-4 items-start">
+                  <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: 'rgba(255,255,255,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '11px', fontWeight: '900', color: '#ffffff', flexShrink: 0, marginTop: '2px' }}>3</div>
+                  <p style={{ fontSize: '0.9rem', color: '#ffffff', fontWeight: 600, lineHeight: 1.6 }}>Acompanhe o SLA de resposta direto no seu painel.</p>
+                </div>
               </div>
             </div>
+          </section>
 
-            <div className="flex justify-end pt-6 border-t border-gray-100">
-              <button type="submit" className="btn btn-primary px-12 py-4 text-lg">
-                <Save size={20} />
-                Registrar Solicitação
-              </button>
-            </div>
-          </form>
-        </section>
-      )}
+          <section className="form-card-premium" style={{ padding: '2.5rem' }}>
+             <h4 className="font-black mb-6 text-gray-900 uppercase tracking-widest text-xs">Informações Úteis</h4>
+             <div className="space-y-4">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <Zap size={16} className="text-yellow-500" />
+                    <span className="text-xs font-bold text-gray-700">SLA Médio de 24h para TI</span>
+                </div>
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
+                    <ShieldCheck size={16} className="text-blue-500" />
+                    <span className="text-xs font-bold text-gray-700">Chamados 100% Auditados</span>
+                </div>
+             </div>
+          </section>
+        </div>
+      </div>
     </div>
   );
 }

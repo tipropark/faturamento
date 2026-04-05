@@ -84,3 +84,47 @@ export function canAccessCentralReports(perfil: Perfil): boolean {
   return ['administrador', 'diretoria', 'gerente_operacoes', 'administrativo'].includes(perfil);
 }
 
+
+export function canAccessPatrimonio(perfil: Perfil): boolean {
+  return [
+    'administrador', 'diretoria', 'gerente_operacoes', 
+    'supervisor', 'financeiro', 'auditoria', 'ti', 'administrativo'
+  ].includes(perfil);
+}
+
+export function canManagePatrimonio(perfil: Perfil): boolean {
+  return ['administrador', 'administrativo', 'ti'].includes(perfil);
+}
+
+export function canTransferPatrimonio(perfil: Perfil): boolean {
+  return ['administrador', 'ti', 'gerente_operacoes', 'administrativo'].includes(perfil);
+}
+
+export function canManagePatrimonioMaintenance(perfil: Perfil): boolean {
+  return ['administrador', 'administrativo', 'ti', 'gerente_operacoes'].includes(perfil);
+}
+
+export function canAuditPatrimonio(perfil: Perfil): boolean {
+  return ['administrador', 'auditoria'].includes(perfil);
+}
+
+// --- PERMISSÕES DE COLABORADORES ---
+
+export function canAccessColaboradores(perfil: Perfil): boolean {
+  return [
+    'administrador', 'diretoria', 'gerente_operacoes', 
+    'supervisor', 'rh', 'dp', 'auditoria', 'administrativo'
+  ].includes(perfil);
+}
+
+export function canManageColaboradores(perfil: Perfil): boolean {
+  return ['administrador', 'rh', 'dp', 'administrativo'].includes(perfil);
+}
+
+export function canEditColaboradorOperacoes(perfil: Perfil): boolean {
+  return ['administrador', 'rh', 'dp', 'gerente_operacoes', 'administrativo'].includes(perfil);
+}
+
+export function canViewColaboradorFinanceiro(perfil: Perfil): boolean {
+  return ['administrador', 'diretoria', 'rh', 'dp', 'financeiro'].includes(perfil);
+}

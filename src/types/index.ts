@@ -563,3 +563,67 @@ export const CATEGORIA_CAUSA_META_LABELS: Record<CategoriaCausaMeta, string> = {
   erro_operacional: 'Erro Operacional',
   outros: 'Outros',
 };
+
+// --- MÓDULO DE COLABORADORES ---
+
+export type StatusColaborador = 'ativo' | 'afastado' | 'ferias' | 'desligado';
+
+export type TipoVinculoColaborador = 
+  | 'CLT' 
+  | 'PJ' 
+  | 'Mei' 
+  | 'Estágio' 
+  | 'Temporário' 
+  | 'Terceirizado';
+
+export interface Colaborador {
+  id: string;
+  nome: string;
+  cpf: string;
+  matricula?: string;
+  email?: string;
+  telefone?: string;
+  cargo?: string;
+  departamento?: string;
+  tipo_vinculo: TipoVinculoColaborador;
+  status: StatusColaborador;
+  data_admissao: string;
+  data_desligamento?: string;
+  usuario_id?: string;
+  usuario?: Usuario;
+  observacoes?: string;
+  operacoes?: ColaboradorOperacao[];
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export interface ColaboradorOperacao {
+  id: string;
+  colaborador_id: string;
+  colaborador?: Colaborador;
+  operacao_id: string;
+  operacao?: Operacao;
+  funcao_operacao?: string;
+  responsavel_principal: boolean;
+  data_inicio: string;
+  data_fim?: string;
+  ativo: boolean;
+  criado_em: string;
+  atualizado_em: string;
+}
+
+export const STATUS_COLABORADOR_LABELS: Record<StatusColaborador, string> = {
+  ativo: 'Ativo',
+  afastado: 'Afastado',
+  ferias: 'Férias',
+  desligado: 'Desligado',
+};
+
+export const TIPO_VINCULO_COLABORADOR_LABELS: Record<TipoVinculoColaborador, string> = {
+  CLT: 'CLT',
+  PJ: 'PJ',
+  Mei: 'MEI',
+  Estágio: 'Estágio',
+  Temporário: 'Temporário',
+  Terceirizado: 'Terceirizado',
+};

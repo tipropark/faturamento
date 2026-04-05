@@ -64,17 +64,6 @@ export async function recordAuditLog(req: NextRequest | null, params: AuditLogPa
  */
 export async function getAuditedClient(userId: string) {
   const supabase = await createAdminClient();
-  
-  // Configura o ID do usuário na sessão do PostgreSQL para que os triggers fn_auditoria_global_automatica capturem.
-  if (userId) {
-    const { error: rpcError } = await supabase.rpc('set_config', { 
-      name: 'audit.current_user_id', 
-      value: userId, 
-      is_local: true 
-    });
-    if (rpcError) console.error('Aviso: Falha ao setar contexto de auditoria no DB', rpcError);
-  }
-  
   return supabase;
 }
 

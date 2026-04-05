@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, use } from 'react';
 import { 
   ArrowLeft, ShieldAlert, Target, DollarSign, 
   TrendingUp, Clock, AlertTriangle, CheckCircle2,
@@ -10,11 +10,13 @@ import {
   AlertaMeta, ApuracaoMeta, MetaFaturamento, TratativaAlerta,
   STATUS_ALERTA_META_LABELS, CRITICIDADE_ALERTA_LABELS,
   STATUS_APURACAO_LABELS, CATEGORIA_CAUSA_META_LABELS,
-  StatusAlertaMeta, StatusTratativaAlerta, CategoriaCausaMeta
+  StatusAlertaMeta, StatusTratativaAlerta, CategoriaCausaMeta,
+  CriticidadeAlertaMeta
 } from '@/types';
 import Link from 'next/link';
 
-export default function AlertaTratativaPage({ params }: { params: { id: string } }) {
+export default function AlertaTratativaPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -31,7 +33,7 @@ export default function AlertaTratativaPage({ params }: { params: { id: string }
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/metas-faturamento/alertas/${params.id}`);
+      const res = await fetch(`/api/metas-faturamento/alertas/${id}`);
       const json = await res.json();
       setData(json);
       if (json.tratativa) {
@@ -42,7 +44,7 @@ export default function AlertaTratativaPage({ params }: { params: { id: string }
     } finally {
       setLoading(false);
     }
-  }, [params.id]);
+  }, [id]);
 
   useEffect(() => {
     fetchData();
@@ -60,7 +62,7 @@ export default function AlertaTratativaPage({ params }: { params: { id: string }
         }
       };
       
-      const res = await fetch(`/api/metas-faturamento/alertas/${params.id}`, {
+      const res = await fetch(`/api/metas-faturamento/alertas/${id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload)
@@ -105,7 +107,7 @@ export default function AlertaTratativaPage({ params }: { params: { id: string }
                color: data.criticidade === 'alta' || data.criticidade === 'critica' ? 'var(--danger)' : 'var(--warning)', 
                border: '1px solid transparent', fontSize: '0.85rem', fontWeight: 700 
              }}>
-               Criticidade: {CRITICIDADE_ALERTA_LABELS[data.criticidade as string]}
+               Criticidade: {CRITICIDADE_ALERTA_LABELS[data.criticidade as CriticidadeAlertaMeta]}
              </span>
           </div>
         </div>
