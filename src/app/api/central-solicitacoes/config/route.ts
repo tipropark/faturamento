@@ -22,23 +22,46 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Erro ao buscar departamentos' }, { status: 500 });
   }
 
+  // Buscar Categorias
+  const { data: categorias } = await supabase
+    .from('central_categorias')
+    .select('*')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true });
+
+  // Buscar Subcategorias
+  const { data: subcategorias } = await supabase
+    .from('central_subcategorias')
+    .select('*')
+    .eq('ativo', true)
+    .order('ordem', { ascending: true });
+
   // Buscar Status
-  const { data: status, error: statusError } = await supabase
+  const { data: status } = await supabase
     .from('central_status')
     .select('*')
     .eq('ativo', true)
     .order('ordem', { ascending: true });
 
   // Buscar Prioridades
-  const { data: prioridades, error: prioError } = await supabase
+  const { data: prioridades } = await supabase
     .from('central_prioridades')
     .select('*')
     .eq('ativo', true)
     .order('ordem', { ascending: true });
 
+  // Buscar Operações
+  const { data: operacoes } = await supabase
+    .from('operacoes')
+    .select('id, nome_operacao')
+    .order('nome_operacao', { ascending: true });
+
   return NextResponse.json({
     departamentos,
+    categorias,
+    subcategorias,
     status,
-    prioridades
+    prioridades,
+    operacoes
   });
 }

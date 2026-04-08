@@ -80,28 +80,42 @@ export async function POST(req: NextRequest) {
     const errors: string[] = [];
 
     // 5. Normalizar e Processar Itens
-    const preparedItems = items.map((item: any) => {
-      // Log diagnóstico para identificar campos da CloudPark
-      console.log('DEBUG CLOUDPARK ITEM:', JSON.stringify(item));
+    const preparedItems = items.map((item: any, index: number) => {
+      // Validação defensiva: garantir que os campos esperados existem
+      const rawDate = item.date ?? item.payday; // suporte a ambos os formatos
+      const rawPaymentType = item.payment_type ?? item.payment_method;
+
+      if (!rawDate) {
+        console.warn(`[CLOUDPARK] Item[${index}] sem campo "date". Ignorando. item=${JSON.stringify(item)}`);
+        return null;
+      }
+
+      if (!rawPaymentType) {
+        console.warn(`[CLOUDPARK] Item[${index}] sem "payment_type". item=${JSON.stringify(item)}`);
+      }
+
+      // Normalização segura do payment_type (sem assumir formato fixo)
+      const paymentType = (rawPaymentType || 'DESCONHECIDO').toUpperCase();
+
       // Estratégia de Deduplicação: Hash de campos únicos
-      const hashContent = `${filial}|${item.payday}|${item.value}|${item.category}|${item.payment_method}|${item.description}`;
+      const hashContent = `${filial}|${rawDate}|${item.value}|${paymentType}`;
       const integracao_hash = crypto.createHash('sha256').update(hashContent).digest('hex');
 
       return {
         operacao_id: operacao.id,
-        ticket_id: `CP-${integracao_hash.substring(0, 12)}`, // ID legível para display
-        data_entrada: item.payday, // CloudPark envia apenas o payday (saída/pagamento)
-        data_saida: item.payday,
+        ticket_id: `CP-${integracao_hash.substring(0, 12)}`,
+        data_entrada: rawDate,
+        data_saida: rawDate,
         valor: Number(item.value || 0),
-        forma_pagamento: (item.payment_method || '').toUpperCase(),
-        tipo_movimento: (item.category || 'AVULSO').toUpperCase(),
-        descricao: item.description,
+        forma_pagamento: paymentType,
+        tipo_movimento: 'AVULSO',
+        descricao: item.description ?? null,
         origem_sistema: 'CLOUDPARK',
         integracao_hash,
         payload_original: item,
         atualizado_em: new Date().toISOString()
       };
-    });
+    }).filter((item: any) => item !== null);
 
     // Batch UPSERT (Deduplicação automática via banco na constraint integracao_hash)
     const { data: upsertData, error: upsertError } = await supabase
@@ -131,7 +145,11 @@ export async function POST(req: NextRequest) {
 
     // 7. Forçar Re-Consolidação do Dia (Power Feature)
     // Buscamos as datas distintas enviadas para re-consolidar apenas o necessário
-    const distinctDates = Array.from(new Set(items.map((i: any) => i.payday.split('T')[0])));
+    const distinctDates = Array.from(new Set(
+      items
+        .map((i: any) => (i.date ?? i.payday)?.split('T')[0])
+        .filter(Boolean)
+    ));
     
     for (const d of distinctDates) {
       await supabase.rpc('faturamento_consolidar_dia_v2', { 

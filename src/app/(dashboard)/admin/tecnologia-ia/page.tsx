@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Zap, RefreshCcw, ShoppingCart, BookOpen, Terminal, Globe,
-  ChevronRight, Activity
+  ChevronRight, Activity, ParkingCircle
 } from 'lucide-react';
 
 const modules = [
@@ -91,6 +91,18 @@ const modules = [
     accent: '#0ea5e9',
     bg: '#f0f9ff',
     features: ['Real-time', 'Erros', 'Payloads'],
+  },
+  {
+    id: 'logs-cloudpark',
+    href: '/admin/tecnologia-ia/logs-cloudpark',
+    icon: <ParkingCircle size={24} />,
+    label: 'Logs CloudPark',
+    description: 'Monitoramento da integração push de movimentos de estacionamento.',
+    badge: 'Integração',
+    badgeColor: '#8b5cf6',
+    accent: '#8b5cf6',
+    bg: '#f5f3ff',
+    features: ['Push API', 'Erros', 'Payloads'],
   },
 ];
 
