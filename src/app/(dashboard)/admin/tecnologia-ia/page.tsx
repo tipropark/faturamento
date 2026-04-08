@@ -4,7 +4,7 @@ import React from 'react';
 import { useRouter } from 'next/navigation';
 import {
   Zap, RefreshCcw, ShoppingCart, BookOpen, Terminal, Globe,
-  ChevronRight, Activity, ParkingCircle
+  ChevronRight, Activity, ParkingCircle, Key
 } from 'lucide-react';
 
 const modules = [
@@ -103,6 +103,18 @@ const modules = [
     accent: '#8b5cf6',
     bg: '#f5f3ff',
     features: ['Push API', 'Erros', 'Payloads'],
+  },
+  {
+    id: 'chaves-tef',
+    href: '/admin/tecnologia-ia/chaves-tef',
+    icon: <Key size={24} />,
+    label: 'Chaves TEF',
+    description: 'Gerenciamento central de credenciais e concentradores TEF vinculados aos sistemas.',
+    badge: 'Sistemas',
+    badgeColor: '#10b981',
+    accent: '#10b981',
+    bg: '#ecfdf5',
+    features: ['CRUD', 'Vinculação API', 'Parco', 'Linx'],
   },
 ];
 

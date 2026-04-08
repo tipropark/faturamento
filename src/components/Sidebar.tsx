@@ -4,14 +4,12 @@ import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
-  LayoutDashboard, Building2, Users, ShieldCheck,
-  AlertTriangle, Settings, LogOut, ChevronRight,
-  UserCog, ClipboardList, Briefcase, History as LucideHistory,
-  DollarSign, X, ChevronLeft, Menu, Cpu, Boxes
+  Menu, X, ChevronLeft, LogOut
 } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import { Perfil, PERFIL_LABELS } from '@/types';
 import { canAccessAdmin } from '@/lib/permissions';
+import { navItems } from '@/config/navigation';
 
 interface SidebarProps {
   user: {
@@ -25,51 +23,7 @@ interface SidebarProps {
   onToggle: () => void;
 }
 
-const navItems = [
-  {
-    section: 'Principal',
-    items: [
-      { href: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-    ]
-  },
-  {
-    section: 'Módulos Operacionais',
-    items: [
-      { href: '/admin/faturamento', icon: DollarSign, label: 'Faturamento', perfis: ['administrador', 'diretoria', 'financeiro', 'gerente_operacoes'] as Perfil[] },
-      { href: '/admin/faturamento/metas', icon: LayoutDashboard, label: 'Metas e Alertas', perfis: ['administrador', 'diretoria', 'financeiro', 'auditoria'] as Perfil[] },
-      { href: '/admin/patrimonio', icon: Boxes, label: 'Patrimônio', perfis: ['administrador', 'diretoria', 'gerente_operacoes', 'supervisor', 'financeiro', 'auditoria', 'ti', 'administrativo'] as Perfil[] },
-      { href: '/admin/auditoria', icon: ShieldCheck, label: 'Auditoria', perfis: ['administrador', 'auditoria', 'diretoria'] as Perfil[] },
-      { href: '/admin/tecnologia-ia', icon: Cpu, label: 'Tecnologia / IA', perfis: ['administrador', 'auditoria', 'diretoria', 'ti'] as Perfil[] },
-      { href: '/sinistros', icon: AlertTriangle, label: 'Sinistros' },
-      { href: '/tarifarios', icon: ClipboardList, label: 'Tarifários e Convênios', perfis: ['administrador', 'diretoria', 'supervisor', 'ti'] as Perfil[] },
-    ]
-  },
-  {
-    section: 'Operações',
-    items: [
-      { href: '/operacoes', icon: Building2, label: 'Operações', perfis: ['administrador','diretoria','gerente_operacoes','administrativo'] as Perfil[] },
-    ]
-  },
-  {
-    section: 'Atendimento',
-    items: [
-      { href: '/central-solicitacoes', icon: ClipboardList, label: 'Central de Solicitações', perfis: ['administrador', 'ti', 'diretoria', 'gerente_operacoes', 'supervisor', 'analista_sinistro', 'financeiro', 'rh', 'dp', 'auditoria', 'administrativo'] as Perfil[] },
-    ]
-  },
-  {
-    section: 'Administração',
-    items: [
-      { href: '/admin/usuarios', icon: Users, label: 'Usuários', perfis: ['administrador','administrativo','diretoria'] as Perfil[] },
-      { href: '/admin/colaboradores', icon: Briefcase, label: 'Colaboradores', perfis: ['administrador', 'diretoria', 'gerente_operacoes', 'rh', 'dp', 'administrativo'] as Perfil[] },
-      { href: '/admin/supervisores', icon: UserCog, label: 'Supervisores', perfis: ['administrador','administrativo','diretoria','gerente_operacoes'] as Perfil[] },
-      { href: '/admin/gerentes', icon: Briefcase, label: 'Gerentes', perfis: ['administrador','administrativo','diretoria'] as Perfil[] },
-      { href: '/admin/operacoes', icon: ClipboardList, label: 'Gerenciar Operações', perfis: ['administrador','administrativo','diretoria'] as Perfil[] },
-      { href: '/admin/permissoes', icon: ShieldCheck, label: 'Perfis e Permissões', perfis: ['administrador','ti'] as Perfil[] },
-      { href: '/admin/configuracoes', icon: Settings, label: 'Configurações do Sistema', perfis: ['administrador','ti'] as Perfil[] },
-      { href: '/admin/auditoria', icon: LucideHistory, label: 'Auditoria', perfis: ['administrador','ti'] as Perfil[] },
-    ]
-  },
-];
+
 
 function getInitials(nome: string): string {
   return nome.split(' ').slice(0, 2).map(n => n[0]).join('').toUpperCase();

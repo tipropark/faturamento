@@ -5,12 +5,10 @@ import { usePathname } from 'next/navigation';
 import Sidebar from './Sidebar';
 import Topbar from './Topbar';
 import { Perfil } from '@/types';
-import { 
-  Menu, X, History, Users, UserCog, 
-  Briefcase, Settings, LogOut, ShieldCheck 
-} from 'lucide-react';
+import { X, LogOut } from 'lucide-react';
 import { signOut } from 'next-auth/react';
 import Link from 'next/link';
+import { navItems } from '@/config/navigation';
 
 interface LayoutWrapperProps {
   children: React.ReactNode;
@@ -103,38 +101,54 @@ export default function LayoutWrapper({ children, user }: LayoutWrapperProps) {
           <div className="mobile-command-center" onClick={() => setIsMenuOpen(false)}>
             <div className="mobile-sheet" onClick={(e) => e.stopPropagation()}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2.5rem' }}>
-                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#FFFFFF', letterSpacing: '-0.02em' }}>Menu Principal</h2>
+                <h2 style={{ fontSize: '1.5rem', fontWeight: 900, color: '#0F172A', letterSpacing: '-0.02em' }}>Menu Principal</h2>
                 <button 
                   onClick={() => setIsMenuOpen(false)}
-                  style={{ background: 'rgba(255,255,255,0.05)', border: 'none', padding: '0.625rem', borderRadius: '14px', color: 'rgba(255,255,255,0.4)' }}
+                  style={{ background: '#F1F5F9', border: 'none', padding: '0.625rem', borderRadius: '14px', color: '#64748B' }}
                 >
                   <X size={20} />
                 </button>
               </div>
               
-              <div className="command-grid">
-                {[
-                  { label: 'Auditoria', icon: History, href: '/admin/auditoria' },
-                  { label: 'Usuários', icon: Users, href: '/admin/usuarios' },
-                  { label: 'Supervisores', icon: UserCog, href: '/admin/supervisores' },
-                  { label: 'Gerentes', icon: Briefcase, href: '/admin/gerentes' },
-                  { label: 'Permissões', icon: ShieldCheck, href: '/admin/permissoes' },
-                  { label: 'Configurações', icon: Settings, href: '/admin/configuracoes' },
-                ].map((item) => (
-                  <Link key={item.href} href={item.href} className="command-item" onClick={() => setIsMenuOpen(false)}>
-                    <div className="command-icon-box">
-                      <item.icon size={24} />
+              <div className="command-scroller">
+                {navItems.map((section) => {
+                  // Filtrar itens por perfil
+                  const visibleItems = section.items.filter(item => 
+                    !item.perfis || item.perfis.includes(user.perfil)
+                  );
+
+                  if (visibleItems.length === 0) return null;
+
+                  return (
+                    <div key={section.section} className="command-section">
+                      <h3 className="section-title">{section.section}</h3>
+                      <div className="command-grid">
+                        {visibleItems.map((item) => (
+                          <Link 
+                            key={item.href} 
+                            href={item.href} 
+                            className="command-item" 
+                            onClick={() => setIsMenuOpen(false)}
+                          >
+                            <div className="command-icon-box">
+                              <item.icon size={22} />
+                            </div>
+                            <span>{item.label}</span>
+                          </Link>
+                        ))}
+                      </div>
                     </div>
-                    <span>{item.label}</span>
-                  </Link>
-                ))}
+                  );
+                })}
                 
-                <button className="command-item" onClick={() => signOut({ callbackUrl: '/login' })} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                  <div className="command-icon-box" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
-                    <LogOut size={24} />
-                  </div>
-                  <span>Sair</span>
-                </button>
+                <div className="command-section logout-section">
+                  <button className="command-item" onClick={() => signOut({ callbackUrl: '/login' })} style={{ background: 'none', border: 'none', cursor: 'pointer', width: '100%' }}>
+                    <div className="command-icon-box" style={{ color: 'var(--danger)', background: 'var(--danger-bg)' }}>
+                      <LogOut size={22} />
+                    </div>
+                    <span>Sair do Sistema</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>

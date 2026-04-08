@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { 
   Home, 
-  BarChart3, 
+  DollarSign, 
   AlertTriangle,
-  MoreHorizontal
+  MoreHorizontal,
+  Cpu
 } from 'lucide-react';
 
 interface BottomNavProps {
@@ -30,8 +31,13 @@ export default function BottomNav({ onMoreClick }: BottomNavProps) {
         </Link>
         
         <Link href="/admin/faturamento" className={`bottom-nav-item-v2 ${isActive('/admin/faturamento') ? 'active' : ''}`}>
-          <BarChart3 size={18} />
-          <span>Kpis</span>
+          <DollarSign size={18} />
+          <span>Faturam.</span>
+        </Link>
+
+        <Link href="/admin/tecnologia-ia" className={`bottom-nav-item-v2 ${isActive('/admin/tecnologia-ia') ? 'active' : ''}`}>
+          <Cpu size={18} />
+          <span>Tec. IA</span>
         </Link>
 
         <Link href="/sinistros" className={`bottom-nav-item-v2 ${isActive('/sinistros') ? 'active' : ''}`}>

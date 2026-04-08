@@ -221,7 +221,15 @@ export default function AdminOperacoesPage() {
 
     setSaving(false);
     if (res.ok) { setShowModal(false); carregar(); }
-    else { const e = await res.json(); alert('Erro: ' + (e.error || 'Falha ao salvar')); }
+    else {
+      const e = await res.json();
+      const msg = (e.error || '');
+      if (msg.includes('operacoes_codigo_operacao_key') || msg.includes('duplicate key')) {
+        alert('Código já cadastrado. Informe um Código Externo diferente.');
+      } else {
+        alert('Erro: ' + (msg || 'Falha ao salvar'));
+      }
+    }
   };
 
   const toggleStatus = async (op: any) => {
@@ -245,46 +253,54 @@ export default function AdminOperacoesPage() {
   const temPermissaoEdicao = ['administrador', 'administrativo', 'diretoria', 'ti'].includes(perfilUsuario);
 
   return (
-    <div>
-      <div className="page-header">
+    <div className="ops-page">
+
+      {/* HEADER */}
+      <div className="ops-page-header">
         <div>
           <h1 className="page-title">Gerenciar Operações</h1>
           <p className="page-subtitle">{filtradas.length} unidade(s) operacionais</p>
         </div>
-        <div className="flex gap-2">
+        <div className="ops-header-actions">
           <button className="btn btn-secondary btn-sm btn-icon" onClick={carregar} title="Atualizar">
             <RefreshCw size={16} />
           </button>
           {temPermissaoEdicao && (
             <button className="btn btn-primary btn-sm" onClick={() => abrirModal()}>
-              <Plus size={18} /> Nova Unidade
+              <Plus size={18} /> <span className="ops-btn-label">Nova Unidade</span>
             </button>
           )}
         </div>
       </div>
 
-      <div className="card">
-        <div className="filters-bar">
-          <div className="filter-search" style={{ flex: 1.5 }}>
+      {/* FILTROS */}
+      <div className="card ops-filters-card">
+        <div className="ops-filters">
+          <div className="ops-filter-search">
             <Search size={14} />
-            <input 
+            <input
               className="form-control"
-              placeholder="Buscar por unidade, código ou supervisor..." 
-              value={filtros.busca} 
-              onChange={e => setFiltros(p => ({ ...p, busca: e.target.value }))} 
+              placeholder="Buscar operação ou código..."
+              value={filtros.busca}
+              onChange={e => setFiltros(p => ({ ...p, busca: e.target.value }))}
             />
           </div>
-          <select className="form-control" style={{ maxWidth: '180px' }} value={filtros.status} onChange={e => setFiltros(p => ({ ...p, status: e.target.value }))}>
-            <option value="">Status (Todos)</option>
-            <option value="ativa">Ativa</option>
-            <option value="inativa">Inativa</option>
-          </select>
-          <select className="form-control" style={{ maxWidth: '180px' }} value={filtros.bandeira} onChange={e => setFiltros(p => ({ ...p, bandeira: e.target.value }))}>
-            <option value="">Bandeiras</option>
-            {BANDEIRA_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-          </select>
+          <div className="ops-filter-selects">
+            <select className="form-control" value={filtros.status} onChange={e => setFiltros(p => ({ ...p, status: e.target.value }))}>
+              <option value="">Status (Todos)</option>
+              <option value="ativa">Ativa</option>
+              <option value="inativa">Inativa</option>
+            </select>
+            <select className="form-control" value={filtros.bandeira} onChange={e => setFiltros(p => ({ ...p, bandeira: e.target.value }))}>
+              <option value="">Bandeiras</option>
+              {BANDEIRA_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
+            </select>
+          </div>
         </div>
+      </div>
 
+      {/* TABELA — apenas desktop */}
+      <div className="card ops-desktop-only">
         <div className="table-container">
           <table className="table">
             <thead>
@@ -317,12 +333,7 @@ export default function AdminOperacoesPage() {
                     return 'var(--danger)';
                   };
                   return (
-                <tr 
-                  key={o.id} 
-                  onClick={() => abrirModal(o)} 
-                  style={{ cursor: 'pointer' }}
-                  className="clickable-row"
-                >
+                <tr key={o.id} onClick={() => abrirModal(o)} style={{ cursor: 'pointer' }} className="clickable-row">
                   <td>
                     <div style={{ fontWeight: 600, color: 'var(--gray-900)' }}>{o.nome_operacao}</div>
                     <span style={{ fontFamily: 'monospace', fontSize: '0.7rem', color: 'var(--gray-500)' }}>{o.codigo_operacao}</span>
@@ -334,7 +345,7 @@ export default function AdminOperacoesPage() {
                   </td>
                   <td>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <div style={{ width: '100%', maxWidth: '60px', height: '6px', backgroundColor: 'var(--gray-200)', borderRadius: '99px', overflow: 'hidden' }}>
+                      <div style={{ width: '60px', height: '6px', backgroundColor: 'var(--gray-200)', borderRadius: '99px', overflow: 'hidden' }}>
                         <div style={{ height: '100%', width: `${score}%`, backgroundColor: getScoreColor(score) }} />
                       </div>
                       <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--gray-600)' }}>{score}%</span>
@@ -345,16 +356,9 @@ export default function AdminOperacoesPage() {
                   <td style={{ textAlign: 'center', fontWeight: 600 }}>{o.quantidade_vagas}</td>
                   <td style={{ textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
-                      {o.possui_cftv
-                        ? <div title={`Sim, ${o.qtd_cftv} câmeras`}><Wifi size={15} color="var(--success)" /></div>
-                        : <WifiOff size={15} color="var(--gray-300)" />
-                      }
-                      {o.seguro_sinistro && (
-                        <div title="Possui Seguro"><ShieldAlert size={15} color="#00D284" /></div>
-                      )}
-                      {o.possui_manobra && (
-                        <div title="Possui Manobra"><Building2 size={15} color="#7638FF" /></div>
-                      )}
+                      {o.possui_cftv ? <Wifi size={15} color="var(--success)" /> : <WifiOff size={15} color="var(--gray-300)" />}
+                      {o.seguro_sinistro && <ShieldAlert size={15} color="#00D284" />}
+                      {o.possui_manobra && <Building2 size={15} color="#7638FF" />}
                     </div>
                   </td>
                   <td style={{ color: 'var(--gray-600)', fontSize: '0.85rem' }}>{o.supervisor?.nome || <span style={{ color: 'var(--danger)', fontSize: '0.7rem' }}>Não atrelado</span>}</td>
@@ -362,19 +366,17 @@ export default function AdminOperacoesPage() {
                   <td>
                     {o.status === 'ativa'
                       ? <span className="badge badge-green"><span className="badge-dot" />Ativa</span>
-                      : <span className="badge badge-gray"><span className="badge-dot" />Inativa</span>
-                    }
+                      : <span className="badge badge-gray"><span className="badge-dot" />Inativa</span>}
                   </td>
                   <td>
                     <div className="flex gap-1">
-                      <button className="btn btn-ghost btn-xs btn-icon" onClick={() => abrirModal(o)} title={temPermissaoEdicao ? "Editar" : "Visualizar"}>
+                      <button className="btn btn-ghost btn-xs btn-icon" onClick={() => abrirModal(o)}>
                         {temPermissaoEdicao ? <Edit2 size={14} /> : <Search size={14} />}
                       </button>
                       {temPermissaoEdicao && (
                         <button
                           className={`btn btn-ghost btn-xs btn-icon ${o.status === 'ativa' ? 'text-danger' : 'text-success'}`}
                           onClick={(e) => { e.stopPropagation(); toggleStatus(o); }}
-                          title={o.status === 'ativa' ? 'Inativar' : 'Ativar'}
                         >
                           {o.status === 'ativa' ? <PowerOff size={14} /> : <Power size={14} />}
                         </button>
@@ -388,22 +390,94 @@ export default function AdminOperacoesPage() {
         </div>
       </div>
 
+      {/* CARDS — apenas mobile */}
+      <div className="ops-mobile-only ops-card-list">
+        {loading ? (
+          <div className="ops-card-loading">
+            <div className="loading-spinner dark" />
+            <span>Carregando...</span>
+          </div>
+        ) : filtradas.length === 0 ? (
+          <div className="ops-card-empty">
+            <Building2 size={40} />
+            <p>Nenhuma operação encontrada</p>
+          </div>
+        ) : filtradas.map(o => {
+          const score = calcScore(o);
+          const getScoreColor = (s: number) => s > 80 ? 'var(--success)' : s > 50 ? 'var(--warning)' : 'var(--danger)';
+          return (
+            <div key={o.id} className="ops-card" onClick={() => abrirModal(o)}>
+              <div className="ops-card-top">
+                <div className="ops-card-badges">
+                  <span className="badge badge-purple">{o.bandeira}</span>
+                  {o.status === 'ativa'
+                    ? <span className="badge badge-green"><span className="badge-dot" />Ativa</span>
+                    : <span className="badge badge-gray"><span className="badge-dot" />Inativa</span>}
+                </div>
+                {temPermissaoEdicao && (
+                  <button
+                    className={`btn btn-ghost btn-xs btn-icon ${o.status === 'ativa' ? 'text-danger' : 'text-success'}`}
+                    onClick={(e) => { e.stopPropagation(); toggleStatus(o); }}
+                  >
+                    {o.status === 'ativa' ? <PowerOff size={14} /> : <Power size={14} />}
+                  </button>
+                )}
+              </div>
+
+              <div className="ops-card-name">{o.nome_operacao}</div>
+              <div className="ops-card-code">{o.codigo_operacao}</div>
+
+              <div className="ops-card-meta">
+                <div className="ops-card-meta-item">
+                  <MapPin size={13} />
+                  <span>{o.cidade}/{o.uf}</span>
+                </div>
+                <div className="ops-card-meta-item">
+                  <Users size={13} />
+                  <span>{o.supervisor?.nome || <span style={{ color: 'var(--danger)' }}>Sem supervisor</span>}</span>
+                </div>
+              </div>
+
+              <div className="ops-card-score">
+                <div className="ops-score-bar">
+                  <div style={{ width: `${score}%`, backgroundColor: getScoreColor(score) }} />
+                </div>
+                <span style={{ color: getScoreColor(score) }}>{score}%</span>
+              </div>
+
+              {(!o.supervisor_id || !o.horario_funcionamento) && (
+                <div className="ops-card-alert">
+                  <ShieldAlert size={12} /> Dados críticos faltando
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* FAB — apenas mobile */}
+      {temPermissaoEdicao && (
+        <button className="ops-fab ops-mobile-only" onClick={() => abrirModal()}>
+          <Plus size={26} />
+        </button>
+      )}
+
       {/* Modal Multi-Abas */}
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
-          <div className="modal modal-xl" onClick={e => e.stopPropagation()}>
+        <div className="modal-overlay ops-modal-overlay" onClick={() => setShowModal(false)}>
+          <div className="modal modal-xl ops-modal" onClick={e => e.stopPropagation()}>
             <div className="modal-header">
               <div className="modal-title">{editando ? (temPermissaoEdicao ? 'Editar Operação' : 'Visualizar Operação') : 'Nova Operação'}</div>
               <button className="modal-close" onClick={() => setShowModal(false)}><X size={16} /></button>
             </div>
-            
-            <div className="tabs-container" style={{ padding: '0.25rem 1rem', borderBottom: '1px solid var(--gray-100)', background: 'white' }}>
-              <button className={`tab-item ${activeTab === 'identificacao' ? 'active' : ''}`} onClick={() => setActiveTab('identificacao')}><MapPin size={18}/> Identificação</button>
-              <button className={`tab-item ${activeTab === 'estrutura' ? 'active' : ''}`} onClick={() => setActiveTab('estrutura')}><Building2 size={18}/> Estrutura</button>
-              <button className={`tab-item ${activeTab === 'seguranca' ? 'active' : ''}`} onClick={() => setActiveTab('seguranca')}><ShieldAlert size={18}/> Segurança</button>
-              <button className={`tab-item ${activeTab === 'equipe' ? 'active' : ''}`} onClick={() => setActiveTab('equipe')}><Users size={18}/> Equipe</button>
-              <button className={`tab-item ${activeTab === 'automacao' ? 'active' : ''}`} onClick={() => setActiveTab('automacao')}><Cpu size={18}/> Automação</button>
-              <button className={`tab-item ${activeTab === 'gestao' ? 'active' : ''}`} onClick={() => setActiveTab('gestao')}><Settings size={18}/> Governança</button>
+
+            <div className="ops-tabs-scroll">
+              <button className={`tab-item ${activeTab === 'identificacao' ? 'active' : ''}`} onClick={() => setActiveTab('identificacao')}><MapPin size={16}/> <span className="ops-tab-label">Identificação</span></button>
+              <button className={`tab-item ${activeTab === 'estrutura' ? 'active' : ''}`} onClick={() => setActiveTab('estrutura')}><Building2 size={16}/> <span className="ops-tab-label">Estrutura</span></button>
+              <button className={`tab-item ${activeTab === 'seguranca' ? 'active' : ''}`} onClick={() => setActiveTab('seguranca')}><ShieldAlert size={16}/> <span className="ops-tab-label">Segurança</span></button>
+              <button className={`tab-item ${activeTab === 'equipe' ? 'active' : ''}`} onClick={() => setActiveTab('equipe')}><Users size={16}/> <span className="ops-tab-label">Equipe</span></button>
+              <button className={`tab-item ${activeTab === 'automacao' ? 'active' : ''}`} onClick={() => setActiveTab('automacao')}><Cpu size={16}/> <span className="ops-tab-label">Automação</span></button>
+              <button className={`tab-item ${activeTab === 'gestao' ? 'active' : ''}`} onClick={() => setActiveTab('gestao')}><Settings size={16}/> <span className="ops-tab-label">Governança</span></button>
             </div>
 
             <div className="modal-body" style={{ minHeight: '400px' }}>
@@ -424,16 +498,10 @@ export default function AdminOperacoesPage() {
                       <label className="form-label required">Código Externo</label>
                       <input className="form-control" value={formData.codigo_operacao} onChange={e => setFormData(p => ({ ...p, codigo_operacao: e.target.value }))} disabled={!temPermissaoEdicao} placeholder="OP-000" />
                     </div>
-                    <div className="form-group">
+                    <div className="form-group span-2">
                       <label className="form-label required">Bandeira</label>
                       <select className="form-control" value={formData.bandeira} onChange={e => setFormData(p => ({ ...p, bandeira: e.target.value as Bandeira }))} disabled={!temPermissaoEdicao}>
                         {BANDEIRA_OPTIONS.map(b => <option key={b} value={b}>{b}</option>)}
-                      </select>
-                    </div>
-                    <div className="form-group">
-                      <label className="form-label required">Segmentação/Tipo</label>
-                      <select className="form-control" value={formData.tipo_operacao} onChange={e => setFormData(p => ({ ...p, tipo_operacao: e.target.value as TipoOperacao }))} disabled={!temPermissaoEdicao}>
-                        {TIPO_OPTIONS.map(t => <option key={t} value={t}>{TIPO_OPERACAO_LABELS[t]}</option>)}
                       </select>
                     </div>
                     <div className="form-group">
@@ -1051,6 +1119,171 @@ export default function AdminOperacoesPage() {
           </div>
         </div>
       )}
+
+      <style>{`
+        /* ── PAGE LAYOUT ─────────────────────────────────────── */
+        .ops-page { padding-bottom: 6rem; }
+
+        .ops-page-header {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 1.25rem 1.5rem 1rem;
+          flex-wrap: wrap;
+          gap: 0.75rem;
+        }
+
+        .ops-header-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+        /* ── FILTROS ─────────────────────────────────────────── */
+        .ops-filters-card { padding: 1rem 1.25rem; margin-bottom: 1rem; }
+        .ops-filters { display: flex; flex-direction: column; gap: 0.75rem; }
+        .ops-filter-search {
+          display: flex; align-items: center; gap: 0.5rem;
+          background: var(--gray-50); border-radius: var(--radius);
+          padding: 0 0.75rem; border: 1px solid var(--gray-200);
+        }
+        .ops-filter-search .form-control { border: none; background: transparent; box-shadow: none; }
+        .ops-filter-selects { display: flex; gap: 0.75rem; }
+        .ops-filter-selects .form-control { flex: 1; min-width: 0; }
+
+        /* ── VISIBILITY ──────────────────────────────────────── */
+        .ops-desktop-only { display: block; }
+        .ops-mobile-only  { display: none; }
+
+        /* ── MOBILE CARDS ────────────────────────────────────── */
+        .ops-card-list { display: flex; flex-direction: column; gap: 0.75rem; padding: 0 1rem; }
+        .ops-card {
+          background: white; border-radius: 16px;
+          border: 1px solid var(--gray-100);
+          padding: 1rem 1.125rem;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+          cursor: pointer; display: flex; flex-direction: column; gap: 0.5rem;
+          transition: box-shadow 0.2s;
+        }
+        .ops-card:active { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+        .ops-card-top { display: flex; justify-content: space-between; align-items: center; }
+        .ops-card-badges { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+        .ops-card-name { font-size: 1rem; font-weight: 700; color: var(--gray-900); line-height: 1.3; }
+        .ops-card-code { font-family: monospace; font-size: 0.75rem; color: var(--gray-400); }
+        .ops-card-meta { display: flex; flex-direction: column; gap: 0.3rem; margin-top: 0.25rem; }
+        .ops-card-meta-item { display: flex; align-items: center; gap: 0.4rem; font-size: 0.8125rem; color: var(--gray-500); }
+        .ops-card-score { display: flex; align-items: center; gap: 0.5rem; margin-top: 0.25rem; }
+        .ops-score-bar {
+          flex: 1; height: 5px; background: var(--gray-200);
+          border-radius: 99px; overflow: hidden;
+        }
+        .ops-score-bar div { height: 100%; border-radius: 99px; transition: width 0.3s; }
+        .ops-card-score span { font-size: 0.75rem; font-weight: 700; min-width: 32px; }
+        .ops-card-alert { display: flex; align-items: center; gap: 0.375rem; font-size: 0.7rem; font-weight: 600; color: var(--warning-dark); }
+        .ops-card-loading, .ops-card-empty { display: flex; flex-direction: column; align-items: center; gap: 0.75rem; padding: 3rem 1rem; color: var(--gray-400); font-size: 0.9rem; }
+
+        /* ── FAB ─────────────────────────────────────────────── */
+        .ops-fab {
+          position: fixed; bottom: 7rem; right: 1.25rem;
+          width: 56px; height: 56px; border-radius: 18px;
+          background: var(--brand-primary); color: white; border: none;
+          box-shadow: 0 8px 24px rgba(39,47,92,0.35);
+          display: flex; align-items: center; justify-content: center;
+          z-index: 50;
+        }
+
+        /* ── MODAL ───────────────────────────────────────────── */
+
+        /* Sobrepõe o bottom-nav (z-index 1000) */
+        .ops-modal-overlay { z-index: 1100 !important; }
+
+        .ops-tabs-scroll {
+          display: flex;
+          overflow-x: auto;
+          scrollbar-width: none;
+          -webkit-overflow-scrolling: touch;
+          border-bottom: 2px solid var(--border-color);
+          background: white;
+          padding: 0 0.75rem;
+          gap: 0;
+          /* Remove margin-bottom herdado de .tabs-container */
+          margin-bottom: 0;
+        }
+        .ops-tabs-scroll::-webkit-scrollbar { display: none; }
+        .ops-tabs-scroll .tab-item {
+          white-space: nowrap;
+          flex-shrink: 0;
+          padding: 1rem 0.75rem;
+          font-size: 0.875rem;
+          gap: 0.375rem;
+        }
+
+        /* ── FORM GRIDS RESPONSIVE ───────────────────────────── */
+        @media (max-width: 767px) {
+          .ops-desktop-only { display: none !important; }
+          .ops-mobile-only  { display: flex !important; }
+          .ops-fab          { display: flex !important; }
+
+          .ops-filters-card { margin: 0 0 0.75rem; border-radius: 0; border-left: none; border-right: none; }
+          .ops-filter-selects { flex-wrap: wrap; }
+
+          /* Modal bottom-sheet acima do bottom-nav */
+          .ops-modal-overlay {
+            align-items: flex-end;
+            padding: 0;
+          }
+          .ops-modal {
+            border-radius: 24px 24px 0 0 !important;
+            /* Altura máxima: tela inteira menos area segura do topo */
+            max-height: 100dvh !important;
+            height: 95dvh !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            display: flex;
+            flex-direction: column;
+          }
+          /* Header e footer não crescem */
+          .ops-modal .modal-header { flex-shrink: 0; padding: 1rem 1.25rem; }
+          .ops-modal .ops-tabs-scroll { flex-shrink: 0; }
+          .ops-modal .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0.75rem 1rem;
+            /* Sem sobreposição do bottom-nav pois overlay tem z-index maior */
+          }
+          .ops-modal .modal-footer {
+            flex-shrink: 0;
+            padding: 0.875rem 1rem;
+            padding-bottom: calc(0.875rem + env(safe-area-inset-bottom));
+          }
+          .ops-modal .modal-footer .btn { flex: 1; }
+
+          /* Abas compactas no mobile */
+          .ops-tabs-scroll .tab-item {
+            padding: 0.875rem 0.625rem;
+            font-size: 0.75rem;
+            gap: 0.25rem;
+          }
+          /* No mobile mostra só ícone se tela < 400px */
+          @media (max-width: 400px) {
+            .ops-tab-label { display: none; }
+            .ops-tabs-scroll .tab-item { padding: 0.875rem 0.875rem; }
+          }
+
+          /* Form grids colapsam para 1 coluna */
+          .form-grid-2,
+          .form-grid-3,
+          .form-grid-4 { grid-template-columns: 1fr !important; }
+          .span-2, .span-3, .span-4 { grid-column: span 1 !important; }
+
+          .ops-page-header { padding: 1rem 1rem 0.75rem; }
+          .ops-btn-label { display: none; }
+        }
+
+        @media (min-width: 768px) {
+          .ops-filters { flex-direction: row; align-items: center; }
+          .ops-filter-search { flex: 1; }
+          .ops-filter-selects { flex: 0 0 auto; }
+          .ops-filter-selects .form-control { width: 160px; flex: none; }
+          .ops-fab { display: none; }
+        }
+      `}</style>
     </div>
   );
 }

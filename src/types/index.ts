@@ -13,7 +13,7 @@ export type Perfil =
 
 export type StatusUsuario = 'ativo' | 'inativo';
 
-export type Bandeira = 'GPA' | 'Assaí' | 'Carrefour' | 'TriCeplo' | 'Outros';
+export type Bandeira = 'ASSAI' | 'ATACADÃO' | 'CARREFOUR' | 'GPA' | 'GRUPO MATEUS' | 'IBIS' | 'REDE PRÓPRIA' | 'SELFIT' | 'UNIMED' | "SAM'S CLUB";
 
 export type TipoOperacao =
   | 'supermercado'
@@ -479,7 +479,7 @@ export const CATEGORIA_ANEXO_LABELS: Record<CategoriaAnexo, string> = {
   fotos_prevencao: 'Fotos de Prevenção/Melhoria',
 };
 
-export const BANDEIRA_OPTIONS: Bandeira[] = ['GPA', 'Assaí', 'Carrefour', 'TriCeplo', 'Outros'];
+export const BANDEIRA_OPTIONS: Bandeira[] = ['ASSAI', 'ATACADÃO', 'CARREFOUR', 'GPA', 'GRUPO MATEUS', 'IBIS', 'REDE PRÓPRIA', 'SELFIT', 'UNIMED', "SAM'S CLUB"];
 
 export const TIPO_OPERACAO_LABELS: Record<TipoOperacao, string> = {
   supermercado: 'Supermercado',
